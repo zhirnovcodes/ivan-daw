@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Base sine synth: test page</title>
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+      .keys { display: flex; gap: 0.4rem; margin: 1rem 0; }
+      .key { flex: 1; padding: 1.2rem 0; text-align: center; border: 1px solid #888; border-radius: 6px; user-select: none; }
+      .key.down { background: #4a90d9; color: #fff; }
+      .key small { display: block; opacity: 0.7; }
+      label { display: block; margin: 1rem 0 0.25rem; }
+      input[type='range'] { width: 100%; }
+      button { padding: 0.5rem 1rem; }
+      #status { margin-top: 1rem; font-family: ui-monospace, monospace; }
+    </style>
+  </head>
+  <body>
+    <h1>Base sine synth</h1>
+    <p>
+      The plugin on its own, no DAW. Press and hold keys <b>A S D F G H J K</b> (C3 to C4, white keys).
+      Hold up to 8 for a chord; a 9th steals the oldest note. Click the page once first if the browser
+      keeps the audio suspended.
+    </p>
+    <div class="keys" id="keys"></div>
+    <label for="level">Level: <span id="levelText"></span></label>
+    <input id="level" type="range" min="0" max="1" step="0.01" />
+    <p><button id="allOff">All notes off</button></p>
+    <div id="status">loading…</div>
+
+    <script type="module">
+      const KEYS = { a: 60, s: 62, d: 64, f: 65, g: 67, h: 69, j: 71, k: 72 };
+      const NAMES = { 60: 'C3', 62: 'D3', 64: 'E3', 65: 'F3', 67: 'G3', 69: 'A3', 71: 'B3', 72: 'C4' };
+      const $ = (id) => document.getElementById(id);
+
+      const ctx = new AudioContext({ latencyHint: 'interactive' });
+      const master = ctx.createGain();
+      master.gain.value = 0.8;
+      master.connect(ctx.destination);
+
+      const host = {
+        audioContext: ctx,
+        apiVersion: 2,
+        slotId: 'test-page',
+        transport: () => ({ playing: false, bpm: 120, beat: 0, numerator: 4, denominator: 4, loop: null }),
+        notify: (level, msg) => console[level === 'warning' ? 'warn' : level](msg),
+        markDirty: () => {},
+        assetUrl: (p) => new URL(p, import.meta.url).href,
+      };
+
+      const { default: factory } = await import('./index.js');
+      const synth = await factory.create(host, null);
+      synth.ports.get('out').node.connect(master);
+
+      const at = () => ctx.currentTime + 0.02;
+      const send = (bytes) => synth.schedule([{ type: 'midi', time: at(), bytes }]);
+      const down = new Set();
+
+      const keysEl = $('keys');
+      for (const [k, n] of Object.entries(KEYS)) {
+        const el = document.createElement('div');
+        el.className = 'key';
+        el.id = `key-${n}`;
+        el.innerHTML = `${k.toUpperCase()}<small>${NAMES[n]}</small>`;
+        keysEl.append(el);
+      }
+
+      function press(note) {
+        if (down.has(note)) return;
+        down.add(note);
+        $(`key-${note}`).classList.add('down');
+        send([0x90, note, 100]);
+        showStatus();
+      }
+      function release(note) {
+        if (!down.delete(note)) return;
+        $(`key-${note}`).classList.remove('down');
+        send([0x80, note, 0]);
+        showStatus();
+      }
+      function showStatus() {
+        $('status').textContent = `${ctx.state} · ${ctx.sampleRate} Hz · notes held: ${down.size}`;
+      }
+
+      addEventListener('keydown', (e) => {
+        if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+        const note = KEYS[e.key.toLowerCase()];
+        if (note === undefined) return;
+        ctx.resume();
+        press(note);
+      });
+      addEventListener('keyup', (e) => {
+        const note = KEYS[e.key.toLowerCase()];
+        if (note !== undefined) release(note);
+      });
+      addEventListener('blur', () => {
+        for (const n of [...down]) release(n);
+      });
+      addEventListener('pointerdown', () => ctx.resume());
+      for (const el of keysEl.children) {
+        const note = Number(el.id.slice(4));
+        el.addEventListener('pointerdown', () => press(note));
+        el.addEventListener('pointerup', () => release(note));
+        el.addEventListener('pointerleave', () => release(note));
+      }
+
+      const [levelInfo] = synth.parameters();
+      const slider = $('level');
+      const showLevel = () => {
+        $('levelText').textContent = levelInfo.format(synth.parameter('level'));
+      };
+      slider.value = synth.parameter('level');
+      showLevel();
+      slider.addEventListener('input', () => {
+        synth.schedule([{ type: 'automation', time: at(), id: 'level', value: Number(slider.value) }]);
+        showLevel();
+      });
+
+      $('allOff').addEventListener('click', () => {
+        down.clear();
+        for (const el of keysEl.children) el.classList.remove('down');
+        send([0xb0, 123, 0]);
+        showStatus();
+      });
+
+      ctx.addEventListener('statechange', showStatus);
+      showStatus();
+    </script>
+  </body>
+</html>
