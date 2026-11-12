@@ -1,0 +1,2 @@
+# Keep LF everywhere, also on Windows checkouts (Biome checks line endings).
+* text=auto eol=lf
