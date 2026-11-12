@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scheduler test</title>
+    <style>
+      body { font: 15px system-ui, sans-serif; margin: 24px; max-width: 560px; }
+      button, input { font: inherit; padding: 6px 12px; margin: 0 6px 6px 0; }
+      #beat { font: 32px ui-monospace, monospace; margin: 16px 0; }
+      code { background: #eee; padding: 0 4px; }
+    </style>
+  </head>
+  <body>
+    <h1>Scheduler test (P4)</h1>
+    <p>The debug click: a short 1 kHz blip into Master on every beat, timed by the scheduler.</p>
+    <div>
+      <button id="play">Play</button>
+      <button id="stop">Stop</button>
+      BPM <input id="bpm" type="number" min="40" max="240" step="1" value="120" style="width: 80px" />
+      <button id="b60">60</button><button id="b120">120</button><button id="b180">180</button><button id="b240">240</button>
+    </div>
+    <div id="beat">1.1</div>
+    <p>Events: <code id="last">–</code></p>
+    <p>Space toggles Play / Pause.</p>
+    <script type="module" src="./scheduler-test.ts"></script>
+  </body>
+</html>
