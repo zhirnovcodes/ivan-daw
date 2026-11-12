@@ -32,6 +32,20 @@ In a cloud session, attach both repos, or the install fails (the GitHub proxy re
 | `plugins/note-gen` | P7 |
 | `docs` | Ivan |
 
+## Contracts (P2)
+
+| # | Contract | File |
+| --- | --- | --- |
+| C1 | Plugin API v2 types | ivandaw-core `src/api.ts` |
+| C2 | Timing math, ticker | ivandaw-core `src/transport.ts` |
+| C3 | Project schema | `apps/daw/src/model/project.ts` |
+| C4 | Store signals and actions | `apps/daw/src/store/store.ts`, `actions.ts` |
+| C5 | Engine, Scheduler, Router, UI mount | `apps/daw/src/contracts/{engine,scheduler,router,ui}.ts` |
+| C6 | Plugin catalog and folder layout | `apps/daw/src/model/catalog.ts` |
+| C7 | Test hook `window.__ivandaw` | `apps/daw/src/contracts/testHook.ts` |
+
+Until a part lands, use its stand-in from `apps/daw/src/contracts/stubs.ts`. The store gets its services through `provide({ scheduler, router, manifests })`.
+
 ## Commands (P1 creates them)
 
 - `pnpm i`

@@ -1,0 +1,45 @@
+{
+  "format": "ivandaw.project",
+  "version": 1,
+  "transport": { "bpm": 120, "numerator": 4, "denominator": 4 },
+  "nodes": [
+    {
+      "id": "n1",
+      "plugin": "com.ivandaw.note-gen",
+      "x": 80,
+      "y": 160,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {}
+    },
+    {
+      "id": "n2",
+      "plugin": "com.ivandaw.base-sine-synth",
+      "x": 360,
+      "y": 160,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {}
+    },
+    {
+      "id": "master",
+      "plugin": "builtin.master",
+      "x": 640,
+      "y": 160,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {}
+    }
+  ],
+  "cables": [
+    { "id": "c1", "from": { "node": "n1", "port": "out" }, "to": { "node": "n2", "port": "in" } },
+    {
+      "id": "c2",
+      "from": { "node": "n2", "port": "out" },
+      "to": { "node": "master", "port": "in" }
+    }
+  ]
+}
