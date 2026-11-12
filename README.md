@@ -10,8 +10,11 @@ v1 runs on localhost: a note generator plays C3 on every beat into a sine synth,
 
 ```
 pnpm i
-pnpm dev      # http://localhost:5173
-pnpm check
+pnpm dev           # http://localhost:5173
+pnpm check         # typecheck, Biome, Vitest, Playwright
+pnpm review <PR>   # check out a pull request and start the dev server
 ```
 
-The tooling arrives with task P1.
+Node >= 22 and pnpm 10 (through corepack: `corepack enable`).
+Before the first `pnpm check` on a new machine, install the test browser once:
+`pnpm --filter ivandaw exec playwright install chromium`.

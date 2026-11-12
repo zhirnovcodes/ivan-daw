@@ -1,0 +1,25 @@
+{
+  "name": "ivandaw-root",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.34.9",
+  "scripts": {
+    "dev": "pnpm --filter ivandaw dev",
+    "build": "pnpm -r --if-present build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "e2e": "pnpm --filter ivandaw e2e",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm e2e",
+    "review": "node scripts/review.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.7",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

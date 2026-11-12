@@ -1,0 +1,21 @@
+{
+  "name": "ivandaw",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@preact/signals-core": "^1.14.5",
+    "ivandaw-core": "github:zhirnovcodes/ivan-daw-core#cf2ebb830fa64939c9a55e393545911fd50884f2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "vite": "^8.3.8"
+  }
+}
