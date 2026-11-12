@@ -34,6 +34,16 @@ importers:
         specifier: ^8.3.8
         version: 8.3.8
 
+  plugins/base-sine-synth:
+    dependencies:
+      ivandaw-core:
+        specifier: github:zhirnovcodes/ivan-daw-core#v0.1.0
+        version: https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/72cf4f4d3a37fe1b5d6ccadbbd0a1403a52261f5
+    devDependencies:
+      vite:
+        specifier: ^8.3.8
+        version: 8.3.8
+
 packages:
 
   '@biomejs/biome@2.6.7':
