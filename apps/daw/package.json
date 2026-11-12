@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@preact/signals-core": "^1.14.5",
-    "ivandaw-core": "github:zhirnovcodes/ivan-daw-core#cf2ebb830fa64939c9a55e393545911fd50884f2"
+    "ivandaw-core": "github:zhirnovcodes/ivan-daw-core#v0.0.1"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

@@ -24,8 +24,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       ivandaw-core:
-        specifier: github:zhirnovcodes/ivan-daw-core#cf2ebb830fa64939c9a55e393545911fd50884f2
-        version: https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/cf2ebb830fa64939c9a55e393545911fd50884f2
+        specifier: github:zhirnovcodes/ivan-daw-core#v0.0.1
+        version: https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/5fe51ff765640b92f8a7b76e941d36dfd7db5561
     devDependencies:
       '@playwright/test':
         specifier: 1.63.0
@@ -428,8 +428,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  ivandaw-core@https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/cf2ebb830fa64939c9a55e393545911fd50884f2:
-    resolution: {gitHosted: true, integrity: sha512-HAiZa278UI8fGvvybwJA0zU9U1/le8FgjzzEkObiOzg8j+YwUg8FtGmIquzY+JGaRLB4RboBYqsUktymZ+1cTA==, tarball: https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/cf2ebb830fa64939c9a55e393545911fd50884f2}
+  ivandaw-core@https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/5fe51ff765640b92f8a7b76e941d36dfd7db5561:
+    resolution: {gitHosted: true, integrity: sha512-+9V7U9ws0JXpwEDBJ6J75xhbHsxrUjLGH+/52i61FIYw4Q4eeGvCe/oajN05Ux2AIQYoj40yTH48SElSnt3xTg==, tarball: https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/5fe51ff765640b92f8a7b76e941d36dfd7db5561}
     version: 0.0.1
     engines: {node: '>=22'}
 
@@ -906,7 +906,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  ivandaw-core@https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/cf2ebb830fa64939c9a55e393545911fd50884f2: {}
+  ivandaw-core@https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/5fe51ff765640b92f8a7b76e941d36dfd7db5561: {}
 
   lightningcss-android-arm64@1.33.0:
     optional: true
