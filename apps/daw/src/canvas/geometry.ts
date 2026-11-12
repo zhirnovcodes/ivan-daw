@@ -1,0 +1,126 @@
+// Pure canvas geometry: node layout, port positions, cable curves, hit testing, bounds.
+// No DOM here, so every function is unit-tested. Tech design: "Canvas".
+
+import type { PortInfo } from 'ivandaw-core';
+import type { PortRef } from '../model/project';
+
+export const NODE_W = 180;
+export const HEADER_H = 28;
+export const ROW_H = 22;
+export const BODY_PAD = 6;
+export const PORT_D = 12;
+export const CURVE_OUT = 80;
+export const CABLE_HIT_W = 12;
+/** How close (px) a pointer must be to a port centre to count as over it. */
+export const PORT_HIT_R = 12;
+
+export interface Pt {
+  x: number;
+  y: number;
+}
+export interface Size {
+  w: number;
+  h: number;
+}
+
+export interface PortLayout {
+  id: string;
+  label: string;
+  kind: PortInfo['kind'];
+  direction: 'in' | 'out';
+  /** Row index among the ports on the same side. */
+  row: number;
+}
+
+/** Inputs go on the left, outputs on the right; each side fills its rows top to bottom. */
+export function layoutPorts(ports: readonly PortInfo[]): PortLayout[] {
+  const rows = { in: 0, out: 0 };
+  return ports.map((p) => ({
+    id: p.id,
+    label: p.label,
+    kind: p.kind,
+    direction: p.direction,
+    row: rows[p.direction]++,
+  }));
+}
+
+export function nodeHeight(layout: readonly PortLayout[]): number {
+  const ins = layout.filter((p) => p.direction === 'in').length;
+  const outs = layout.length - ins;
+  return HEADER_H + BODY_PAD * 2 + Math.max(ins, outs) * ROW_H;
+}
+
+export const nodeSize = (layout: readonly PortLayout[]): Size => ({
+  w: NODE_W,
+  h: nodeHeight(layout),
+});
+
+/** Port centre relative to the node's top-left corner. Inputs sit on the left edge, outputs on the right. */
+export function portOffset(p: PortLayout): Pt {
+  return {
+    x: p.direction === 'in' ? 0 : NODE_W,
+    y: HEADER_H + BODY_PAD + p.row * ROW_H + ROW_H / 2,
+  };
+}
+
+export function portCenter(origin: Pt, p: PortLayout): Pt {
+  const o = portOffset(p);
+  return { x: origin.x + o.x, y: origin.y + o.y };
+}
+
+/** Cubic Bézier between two port centres, control points CURVE_OUT px out horizontally. */
+export function cableCurve(from: Pt, to: Pt): [Pt, Pt, Pt, Pt] {
+  return [from, { x: from.x + CURVE_OUT, y: from.y }, { x: to.x - CURVE_OUT, y: to.y }, to];
+}
+
+const f = (n: number): string => String(Math.round(n * 100) / 100);
+
+export function cablePath(from: Pt, to: Pt): string {
+  const [a, b, c, d] = cableCurve(from, to);
+  return `M ${f(a.x)} ${f(a.y)} C ${f(b.x)} ${f(b.y)}, ${f(c.x)} ${f(c.y)}, ${f(d.x)} ${f(d.y)}`;
+}
+
+export function bezierPoint(c: readonly [Pt, Pt, Pt, Pt], t: number): Pt {
+  const u = 1 - t;
+  const [a, b, cc, d] = c;
+  const w0 = u * u * u;
+  const w1 = 3 * u * u * t;
+  const w2 = 3 * u * t * t;
+  const w3 = t * t * t;
+  return {
+    x: w0 * a.x + w1 * b.x + w2 * cc.x + w3 * d.x,
+    y: w0 * a.y + w1 * b.y + w2 * cc.y + w3 * d.y,
+  };
+}
+
+export const cableMidpoint = (from: Pt, to: Pt): Pt => bezierPoint(cableCurve(from, to), 0.5);
+
+export interface PortSpot {
+  ref: PortRef;
+  center: Pt;
+}
+
+/** The nearest port within `radius` of `p`, or undefined. */
+export function portAt(
+  p: Pt,
+  spots: readonly PortSpot[],
+  radius = PORT_HIT_R,
+): PortSpot | undefined {
+  let best: PortSpot | undefined;
+  let bestD = radius * radius;
+  for (const s of spots) {
+    const d = (s.center.x - p.x) ** 2 + (s.center.y - p.y) ** 2;
+    if (d <= bestD) {
+      best = s;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+/** Keeps a box of `size` fully inside `bounds`. A box larger than the bounds sticks to the top-left. */
+export function clampToBounds(pos: Pt, size: Size, bounds: Size): Pt {
+  const maxX = Math.max(0, bounds.w - size.w);
+  const maxY = Math.max(0, bounds.h - size.h);
+  return { x: Math.min(maxX, Math.max(0, pos.x)), y: Math.min(maxY, Math.max(0, pos.y)) };
+}
