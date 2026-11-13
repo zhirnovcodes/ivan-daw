@@ -9,7 +9,7 @@ test('Beatality loads from the catalog and shows its UI in its box', async ({ pa
     if (m.type() === 'error') errors.push(m.text());
   });
 
-  await openDemo(page);
+  await openDemo(page, '/?project=sine');
   await page.getByRole('button', { name: '+ Add' }).click();
   await page.getByRole('menuitem', { name: /Beatality/ }).click();
 

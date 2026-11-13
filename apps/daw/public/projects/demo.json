@@ -5,9 +5,9 @@
   "nodes": [
     {
       "id": "n1",
-      "plugin": "com.ivandaw.note-gen",
-      "x": 80,
-      "y": 160,
+      "plugin": "com.ivandaw.note-hold",
+      "x": 40,
+      "y": 60,
       "gain": 1,
       "pan": 0,
       "bypass": false,
@@ -15,9 +15,29 @@
     },
     {
       "id": "n2",
-      "plugin": "com.ivandaw.base-sine-synth",
-      "x": 360,
-      "y": 160,
+      "plugin": "com.beatality.beatality",
+      "x": 280,
+      "y": 40,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {}
+    },
+    {
+      "id": "n3",
+      "plugin": "com.ivandaw.lfo",
+      "x": 40,
+      "y": 220,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {}
+    },
+    {
+      "id": "n4",
+      "plugin": "com.ivandaw.control-sliders",
+      "x": 40,
+      "y": 360,
       "gain": 1,
       "pan": 0,
       "bypass": false,
@@ -26,8 +46,8 @@
     {
       "id": "master",
       "plugin": "builtin.master",
-      "x": 640,
-      "y": 160,
+      "x": 1100,
+      "y": 60,
       "gain": 1,
       "pan": 0,
       "bypass": false,

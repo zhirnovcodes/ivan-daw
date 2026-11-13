@@ -4,7 +4,7 @@ import { addNode, drag, openDemo, portDot, rms } from './helpers';
 // v1.1 T9 + T12: a held note from Note hold makes Beatality play; Stop silences it.
 test('Note hold gates Beatality: sound on Play, silence on Stop', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await openDemo(page);
+  await openDemo(page, '/?project=sine');
   // Clear the v1 demo's generator so only Note hold drives anything.
   await page.locator('.ivd-node[data-node="n1"] .ivd-header').click();
   await page.keyboard.press('Delete');

@@ -19,8 +19,8 @@ import { loadProject, play, stop } from '../store/actions';
 import { camera, mode, nodeStatus, project, provide, selection, uiSlots } from '../store/store';
 import { readMode } from './mode';
 import { type Mounted, syncPluginUis } from './pluginUi';
+import { projectPath } from './projectUrl';
 
-export const DEMO_PROJECT = 'projects/demo.json';
 /** Half a node box, so `+ Add` centres the new box rather than its corner. */
 const NODE_HALF = { x: 90, y: 40 };
 
@@ -91,7 +91,7 @@ export async function boot(): Promise<App> {
   provide({ manifests: manifestsFrom(catalog) });
 
   try {
-    loadProject(await fetchProject(`${import.meta.env.BASE_URL}${DEMO_PROJECT}`));
+    loadProject(await fetchProject(`${import.meta.env.BASE_URL}${projectPath(location.search)}`));
   } catch (e) {
     showToast(`Demo project failed to load: ${e instanceof Error ? e.message : String(e)}`);
   }

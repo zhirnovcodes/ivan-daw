@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 // v1.1 T2: the camera moves with a right-drag and with wheel / two-finger scroll; nodes move with it.
 test('right-drag and wheel pan the canvas', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?project=sine');
   const canvas = page.locator('.ivd-canvas');
   await expect(canvas).toBeVisible();
   const node = page.locator('.ivd-node[data-node="n1"]');

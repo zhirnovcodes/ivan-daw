@@ -1,11 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import demoJson from '../../public/projects/demo.json';
+import sineJson from '../../public/projects/sine.json';
 import { emptyProject, MASTER_ID, MASTER_PLUGIN, parseProject } from './project';
 
-const demo = (): unknown => structuredClone(demoJson);
+const sine = (): unknown => structuredClone(sineJson);
 describe('parseProject', () => {
-  it('reads the demo project: note-gen → sine → Master', () => {
-    const p = parseProject(demo());
+  it('reads the v1.1 demo: Note hold → Beatality → Master, LFO and sliders unconnected', () => {
+    const p = parseProject(structuredClone(demoJson));
+    expect(p.nodes.map((n) => n.plugin)).toEqual([
+      'com.ivandaw.note-hold',
+      'com.beatality.beatality',
+      'com.ivandaw.lfo',
+      'com.ivandaw.control-sliders',
+      MASTER_PLUGIN,
+    ]);
+    expect(p.cables.map((c) => `${c.from.node}.${c.from.port}>${c.to.node}.${c.to.port}`)).toEqual([
+      'n1.out>n2.in',
+      'n2.out>master.in',
+    ]);
+  });
+
+  it('reads the v1 sine project: note-gen → sine → Master', () => {
+    const p = parseProject(sine());
     expect(p.transport).toEqual({ bpm: 120, numerator: 4, denominator: 4 });
     expect(p.nodes.map((n) => [n.id, n.plugin])).toEqual([
       ['n1', 'com.ivandaw.note-gen'],

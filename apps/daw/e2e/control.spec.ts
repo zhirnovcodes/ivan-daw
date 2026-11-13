@@ -4,7 +4,7 @@ import { addNode, drag, openDemo, portDot, rms } from './helpers';
 // v1.1 T5 + T6 + T7: a control cable from a slider to the sine synth's Level, drawn on the canvas.
 test('slider A drives the sine synth level through a control cable', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await openDemo(page);
+  await openDemo(page, '/?project=sine');
   const sliders = await addNode(page, /Control sliders/);
 
   await drag(page, portDot(sliders, 'a', 'out'), portDot('n2', 'ctl', 'in'));

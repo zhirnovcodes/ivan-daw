@@ -3,7 +3,7 @@ import { drag, openDemo, portDot } from './helpers';
 
 // v1.1 T4: /play_only locks the graph but keeps the sound controls live.
 test('play-only locks the graph, keeps volume, pan and BPM', async ({ page }) => {
-  await openDemo(page, '/play_only');
+  await openDemo(page, '/play_only?project=sine');
   expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('play');
   await expect(page.locator('.ivd-play-tag')).toHaveText('Play only');
   await expect(page.getByRole('button', { name: '+ Add' })).toBeHidden();
@@ -39,9 +39,9 @@ test('play-only locks the graph, keeps volume, pan and BPM', async ({ page }) =>
 });
 
 test('?play_only works too, and the plain page stays editable', async ({ page }) => {
-  await openDemo(page, '/?play_only');
+  await openDemo(page, '/?project=sine&play_only');
   expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('play');
-  await openDemo(page, '/');
+  await openDemo(page, '/?project=sine');
   expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('edit');
   await expect(page.getByRole('button', { name: '+ Add' })).toBeVisible();
 });

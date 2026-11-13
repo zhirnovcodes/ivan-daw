@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 // v1.1 T3: volume and pan sliders on every box with a main audio out, and on Master.
 test('box footers set volume and pan, Master included', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?project=sine');
   const node = (id: string) => page.locator(`.ivd-node[data-node="${id}"]`);
   await expect(node('n2').locator('.ivd-foot')).toBeVisible();
   await expect(node('master').locator('.ivd-foot')).toBeVisible();
