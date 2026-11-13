@@ -3,7 +3,7 @@
 import { effect } from '@preact/signals-core';
 import type { MountUi } from '../contracts/ui';
 import { pause, play, setBpm, stop } from '../store/actions';
-import { deps, playing, project } from '../store/store';
+import { deps, mode, playing, project } from '../store/store';
 import { addMenuOpen } from './addMenu';
 import { parseBpm, stepBpm } from './bpm';
 import { ensureStyles, h } from './dom';
@@ -36,6 +36,8 @@ export const mountTransportBar: MountUi = (root) => {
   addBtn.type = 'button';
   addBtn.dataset.ivpAdd = '';
   bar.append(playBtn, stopBtn, bpmWrap, beat, h('span', 'ivp-spacer'), addBtn);
+  // Play-only (v1.1): nothing can be added.
+  addBtn.hidden = mode.peek() === 'play';
   root.appendChild(bar);
 
   // Buttons give focus back to the page, so Space always toggles Play afterwards.

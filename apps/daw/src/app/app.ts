@@ -16,7 +16,8 @@ import { mountAddMenu, mountNodePanel, mountTransportBar, setPanelServices } fro
 import { createRouter, type LiveRouter } from '../router/router';
 import { createScheduler, type LiveScheduler } from '../scheduler/scheduler';
 import { loadProject, play, stop } from '../store/actions';
-import { camera, nodeStatus, project, provide, selection, uiSlots } from '../store/store';
+import { camera, mode, nodeStatus, project, provide, selection, uiSlots } from '../store/store';
+import { readMode } from './mode';
 import { type Mounted, syncPluginUis } from './pluginUi';
 
 export const DEMO_PROJECT = 'projects/demo.json';
@@ -34,6 +35,7 @@ body { font: 13px system-ui, sans-serif; color: #000; background: #fff; }
 #ivd-canvas { position: relative; overflow: hidden; min-width: 0; }
 #ivd-side { width: 260px; border-left: 1px solid #000; overflow-y: auto; }
 #ivd-side.ivd-empty { display: none; }
+.ivd-play-tag { margin-left: 8px; padding: 1px 6px; border: 1px solid #000; border-radius: 4px; font-size: 11px; font-weight: 400; }
 `;
 
 export interface App {
@@ -77,7 +79,14 @@ async function loadCatalog(): Promise<Catalog> {
 }
 
 export async function boot(): Promise<App> {
+  mode.value = readMode(location);
   const ui = layout();
+  if (mode.value === 'play') {
+    const tag = document.createElement('span');
+    tag.className = 'ivd-play-tag';
+    tag.textContent = 'Play only';
+    document.getElementById('app')?.append(tag);
+  }
   const catalog = await loadCatalog();
   provide({ manifests: manifestsFrom(catalog) });
 
@@ -145,6 +154,7 @@ export async function boot(): Promise<App> {
       project: () => project.value,
       status: () => nodeStatus.value,
       camera: () => camera.value,
+      mode: () => mode.value,
     };
     window.__ivandaw = hook;
   }

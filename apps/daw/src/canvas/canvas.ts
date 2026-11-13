@@ -20,7 +20,7 @@ import {
   setPan,
   setUiSlot,
 } from '../store/actions';
-import { camera, deps, nodeErrors, nodeStatus, project, selection } from '../store/store';
+import { camera, deps, mode, nodeErrors, nodeStatus, project, selection } from '../store/store';
 import { CTL_SPOT, controlChoices, spotOf } from './controls';
 import {
   CABLE_HIT_W,
@@ -50,6 +50,7 @@ import {
   reduce,
   type Target,
 } from './gesture';
+import { permits, playTarget } from './playOnly';
 import { canvasServices } from './services';
 import { CANVAS_CSS } from './styles';
 
@@ -188,7 +189,11 @@ export const mountCanvas: MountUi = (root) => {
     },
   });
 
+  const isControlCable = (id: string): boolean =>
+    project.peek().cables.some((c) => c.id === id && isControlPort(c.to.port));
+
   function run(e: Effect): void {
+    if (!permits(mode.peek(), e, isControlCable)) return;
     switch (e.type) {
       case 'moveNode':
         moveNode(e.id, e.x, e.y);
@@ -347,10 +352,16 @@ export const mountCanvas: MountUi = (root) => {
     el.addEventListener('pointercancel', cancel);
   }
 
-  function down(e: PointerEvent, target: Target, capture?: HTMLElement): void {
+  function down(e: PointerEvent, asked: Target, capture?: HTMLElement): void {
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
+    const outKind =
+      asked.kind === 'outPort'
+        ? views.get(asked.ref.node)?.layout.find((p) => p.id === asked.ref.port)?.kind
+        : undefined;
+    const target = playTarget(mode.peek(), asked, outKind);
+    if (!target) return;
     dispatch({ type: 'down', target, at: rel(e) });
     if (capture && state.mode !== 'idle') track(capture, e);
   }
@@ -549,7 +560,8 @@ export const mountCanvas: MountUi = (root) => {
         label.textContent = controlLabel(c.to.port, (id) => params.find((p) => p.id === id)?.label);
         g.appendChild(label);
       }
-      if (selected) {
+      // In play-only mode only control cables can be deleted, so only they get the ×.
+      if (selected && (mode.value === 'edit' || isControlPort(c.to.port))) {
         const m = cableMidpoint(a, b);
         const x = s('g', { transform: `translate(${m.x} ${m.y})` }, 'ivd-x');
         x.dataset.cableX = c.id;

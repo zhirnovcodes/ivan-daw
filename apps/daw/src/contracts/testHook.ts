@@ -13,6 +13,8 @@ export interface IvanDawTestHook {
   status(): Record<string, string>;
   /** The canvas camera (world point at the canvas's top-left). v1.1. */
   camera(): { x: number; y: number };
+  /** 'play' when the page opened at /play_only or with ?play_only. v1.1. */
+  mode(): 'edit' | 'play';
 }
 
 declare global {

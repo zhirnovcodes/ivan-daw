@@ -7,7 +7,15 @@ import type { MountUi } from '../contracts/ui';
 import { CTL_GAIN, CTL_PAN, paramPort } from '../model/control';
 import { GAIN_MAX, MASTER_ID } from '../model/project';
 import { removeNode, setGain, setPan, setParam } from '../store/actions';
-import { deps, type NodeStatus, nodeErrors, nodeStatus, project, selection } from '../store/store';
+import {
+  deps,
+  mode,
+  type NodeStatus,
+  nodeErrors,
+  nodeStatus,
+  project,
+  selection,
+} from '../store/store';
 import { ensureStyles, h } from './dom';
 import { formatDb, formatPan } from './format';
 import {
@@ -191,7 +199,8 @@ export const mountNodePanel: MountUi = (root) => {
       }
     }
 
-    if (id !== MASTER_ID) {
+    // Play-only (v1.1): nodes cannot be removed.
+    if (id !== MASTER_ID && mode.peek() === 'edit') {
       const rm = h('button', 'ivp-remove', 'Remove');
       rm.type = 'button';
       rm.addEventListener('click', () => removeNode(id));

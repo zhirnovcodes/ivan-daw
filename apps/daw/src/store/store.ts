@@ -41,6 +41,8 @@ export const project = signal<Project>(emptyProject());
 export const selection = signal<Selection>({});
 /** The world point shown at the canvas's top-left corner. View state: not part of the project, not saved. */
 export const camera = signal<{ x: number; y: number }>({ x: 0, y: 0 });
+/** 'play' = play-only (v1.1): the graph is locked, the sound stays playable. Set once at boot. */
+export const mode = signal<'edit' | 'play'>('edit');
 /**
  * Node id → the element inside its box where the plugin's own UI goes (v1.1).
  * The canvas writes it through `setUiSlot`; the app shell mounts plugin UIs into these.
