@@ -17,6 +17,7 @@ import {
   select,
   setGain,
   setPan,
+  setUiSlot,
 } from '../store/actions';
 import { camera, deps, nodeErrors, nodeStatus, project, selection } from '../store/store';
 import {
@@ -24,13 +25,17 @@ import {
   cableMidpoint,
   cablePath,
   layoutPorts,
+  NODE_W,
   nodeSize,
+  nodeWidth,
   type PortLayout,
   type PortSpot,
   type Pt,
   portAt,
   portCenter,
   toWorld,
+  type UiBox,
+  uiTop,
   wheelPan,
 } from './geometry';
 import {
@@ -106,6 +111,10 @@ interface NodeView {
   plugin: string;
   layout: PortLayout[];
   portEls: Map<string, HTMLElement>;
+  /** Box width: 180, or wider for a plugin UI. */
+  w: number;
+  /** The plugin UI's size and the element it is mounted into, when the manifest has `ui`. */
+  ui?: { box: UiBox; slot: HTMLElement };
   /** Volume and pan on the box, for nodes with a main audio out and for Master. */
   footer?: { el: HTMLElement; vol: HTMLInputElement; pan: HTMLInputElement };
 }
@@ -149,7 +158,8 @@ export const mountCanvas: MountUi = (root) => {
   const portPoint = (ref: PortRef): Pt | undefined => {
     const n = project.peek().nodes.find((x) => x.id === ref.node);
     const l = views.get(ref.node)?.layout.find((p) => p.id === ref.port);
-    return n && l ? portCenter(n, l) : undefined;
+    const w = views.get(ref.node)?.w ?? NODE_W;
+    return n && l ? portCenter(n, l, w) : undefined;
   };
 
   const inputSpots = (): PortSpot[] => {
@@ -157,7 +167,10 @@ export const mountCanvas: MountUi = (root) => {
     for (const n of project.peek().nodes) {
       for (const l of views.get(n.id)?.layout ?? []) {
         if (l.direction === 'in') {
-          spots.push({ ref: { node: n.id, port: l.id }, center: portCenter(n, l) });
+          spots.push({
+            ref: { node: n.id, port: l.id },
+            center: portCenter(n, l, views.get(n.id)?.w),
+          });
         }
       }
     }
@@ -167,7 +180,7 @@ export const mountCanvas: MountUi = (root) => {
   const ctx = (): GestureCtx => ({
     sizeOf: (id) => {
       const v = views.get(id);
-      return nodeSize(v?.layout ?? [], v?.footer !== undefined);
+      return nodeSize(v?.layout ?? [], v?.footer !== undefined, v?.ui?.box);
     },
   });
 
@@ -321,6 +334,8 @@ export const mountCanvas: MountUi = (root) => {
   canvas.addEventListener(
     'wheel',
     (e) => {
+      // Over a plugin's own UI the wheel is the plugin's (its knobs, its lists).
+      if (e.target instanceof Element && e.target.closest('.ivd-ui')) return;
       e.preventDefault();
       if (e.ctrlKey) return;
       const d = wheelPan(e, canvas.clientHeight || 600);
@@ -348,7 +363,16 @@ export const mountCanvas: MountUi = (root) => {
     );
     el.addEventListener('pointerdown', (e) => down(e, { kind: 'body', node: id }));
     nodeLayer.appendChild(el);
-    return { el, title, dot, manifest: undefined, plugin: '', layout: [], portEls: new Map() };
+    return {
+      el,
+      title,
+      dot,
+      manifest: undefined,
+      plugin: '',
+      layout: [],
+      portEls: new Map(),
+      w: NODE_W,
+    };
   }
 
   function buildPorts(id: string, v: NodeView, manifest: PortsManifest | undefined): void {
@@ -374,6 +398,32 @@ export const mountCanvas: MountUi = (root) => {
   }
 
   const portCenterY = (l: PortLayout): number => portCenter({ x: 0, y: 0 }, l).y;
+
+  /** The slot a plugin's own UI is mounted into (by the app shell), under the port rows. */
+  function buildUi(id: string, v: NodeView): void {
+    v.ui?.slot.remove();
+    v.ui = undefined;
+    const box = v.manifest?.ui;
+    v.w = nodeWidth(box);
+    if (!box) {
+      setUiSlot(id, null);
+      return;
+    }
+    const slot = h('div', 'ivd-ui');
+    slot.dataset.ui = id;
+    slot.style.top = `${uiTop(v.layout)}px`;
+    slot.style.width = `${box.width}px`;
+    slot.style.height = `${box.height}px`;
+    // The UI belongs to the plugin: no node drag, no default-prevented clicks. It still selects the node.
+    slot.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      if (selection.peek().node !== id) select({ node: id });
+    });
+    v.el.appendChild(slot);
+    v.ui = { box, slot };
+    setUiSlot(id, slot);
+  }
 
   function buildFooter(id: string, v: NodeView): void {
     v.footer?.el.remove();
@@ -458,11 +508,14 @@ export const mountCanvas: MountUi = (root) => {
       if (v.plugin !== n.plugin || v.manifest !== manifest) {
         v.plugin = n.plugin;
         buildPorts(n.id, v, manifest);
+        buildUi(n.id, v);
         buildFooter(n.id, v);
         v.title.textContent = manifest?.name ?? n.plugin;
       }
       v.el.style.transform = `translate(${n.x}px, ${n.y}px)`;
-      v.el.style.height = `${nodeSize(v.layout, v.footer !== undefined).h}px`;
+      const size = nodeSize(v.layout, v.footer !== undefined, v.ui?.box);
+      v.el.style.width = `${size.w}px`;
+      v.el.style.height = `${size.h}px`;
       if (v.footer) {
         if (Number(v.footer.vol.value) !== n.gain) v.footer.vol.value = String(n.gain);
         if (Number(v.footer.pan.value) !== n.pan) v.footer.pan.value = String(n.pan);
@@ -476,6 +529,7 @@ export const mountCanvas: MountUi = (root) => {
     }
     for (const [id, v] of views) {
       if (!live.has(id)) {
+        if (v.ui) setUiSlot(id, null);
         v.el.remove();
         views.delete(id);
       }
@@ -504,6 +558,7 @@ export const mountCanvas: MountUi = (root) => {
     stopCamera();
     document.removeEventListener('keydown', onKey);
     canvas.remove();
+    for (const [id, v] of views) if (v.ui) setUiSlot(id, null);
     views.clear();
   };
 };

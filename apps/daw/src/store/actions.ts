@@ -28,6 +28,7 @@ import {
   project,
   type Selection,
   selection,
+  uiSlots,
 } from './store';
 
 export type ConnectResult = { ok: true; id: string } | { ok: false; reason: RefuseReason };
@@ -203,6 +204,16 @@ export function panCamera(dx: number, dy: number): void {
   if (dx === 0 && dy === 0) return;
   const c = camera.value;
   camera.value = { x: c.x + dx, y: c.y + dy };
+}
+
+/** For the canvas: the element a node's plugin UI goes into, or null when the box is gone. */
+export function setUiSlot(id: string, el: HTMLElement | null): void {
+  const cur = uiSlots.value;
+  if ((cur.get(id) ?? null) === el) return;
+  const next = new Map(cur);
+  if (el) next.set(id, el);
+  else next.delete(id);
+  uiSlots.value = next;
 }
 
 export function select(sel: Selection): void {

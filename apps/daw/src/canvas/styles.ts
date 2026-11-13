@@ -39,6 +39,8 @@ export const CANVAS_CSS = `
 .ivd-port.out i { right: -6px; cursor: crosshair; touch-action: none; }
 .ivd-port.valid i { box-shadow: 0 0 0 3px rgba(255,255,255,0.35), 0 0 10px 3px var(--c); }
 .ivd-port.invalid { opacity: 0.25; }
+.ivd-ui { position: absolute; left: 0; overflow: hidden; background: transparent; color: #000;
+  user-select: text; -webkit-user-select: text; cursor: auto; }
 .ivd-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 52px; box-sizing: border-box; padding: 4px 10px;
   border-top: 1px solid #44474f; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
 .ivd-foot-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #c4c6cc; }

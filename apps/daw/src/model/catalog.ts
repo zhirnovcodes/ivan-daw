@@ -29,14 +29,21 @@ export interface CatalogEntry {
    * a new instrument's main out to Master.
    */
   ports: PortInfo[];
+  /** The manifest's UI size (v1.1). Set → the plugin's own UI is shown inside its node box. */
+  ui?: PluginUiSize;
 }
+
+/** A plugin UI's fixed size in CSS px, from `manifest.ui`. */
+export type PluginUiSize = NonNullable<PluginManifest['ui']>;
 
 export interface Catalog {
   plugins: CatalogEntry[];
 }
 
 /** What the router and store need of a manifest. Built from the catalog, then from the loaded module. */
-export type PortsManifest = Pick<PluginManifest, 'id' | 'name' | 'kind' | 'ports'>;
+export type PortsManifest = Pick<PluginManifest, 'id' | 'name' | 'kind' | 'ports'> & {
+  ui?: PluginUiSize;
+};
 
 /** Plugin id → manifest. Always includes `builtin.master`. */
 export type ManifestMap = ReadonlyMap<string, PortsManifest>;
@@ -48,6 +55,15 @@ export const MASTER_MANIFEST: PortsManifest = {
   kind: 'utility',
   ports: [{ id: MASTER_IN, label: 'in', kind: 'audio', direction: 'in', channels: 2, main: true }],
 };
+
+/** A usable `manifest.ui`: positive width and height. Anything else means "no UI". */
+export function readUiSize(v: unknown): PluginUiSize | undefined {
+  if (typeof v !== 'object' || v === null) return undefined;
+  const u = v as Record<string, unknown>;
+  if (typeof u.width !== 'number' || typeof u.height !== 'number') return undefined;
+  if (!(u.width > 0 && u.height > 0)) return undefined;
+  return { width: u.width, height: u.height, resizable: u.resizable === true };
+}
 
 const KINDS: readonly PluginKind[] = ['instrument', 'effect', 'midi', 'modulator', 'utility'];
 
@@ -86,12 +102,14 @@ export function parseCatalog(raw: unknown): Catalog {
       Array.isArray(r.ports) &&
       r.ports.every(isPort)
     ) {
+      const ui = readUiSize(r.ui);
       plugins.push({
         id: r.id,
         name: r.name,
         kind: r.kind as PluginKind,
         url: r.url,
         ports: r.ports,
+        ...(ui ? { ui } : {}),
       });
     } else {
       console.warn('catalog: skipping a malformed entry', e);
@@ -110,7 +128,13 @@ export async function fetchCatalog(url = CATALOG_URL): Promise<Catalog> {
 export function manifestsFrom(catalog: Catalog): ManifestMap {
   const map = new Map<string, PortsManifest>([[MASTER_PLUGIN, MASTER_MANIFEST]]);
   for (const e of catalog.plugins) {
-    map.set(e.id, { id: e.id, name: e.name, kind: e.kind, ports: e.ports });
+    map.set(e.id, {
+      id: e.id,
+      name: e.name,
+      kind: e.kind,
+      ports: e.ports,
+      ...(e.ui ? { ui: e.ui } : {}),
+    });
   }
   return map;
 }

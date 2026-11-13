@@ -11,10 +11,12 @@ import {
   layoutPorts,
   NODE_W,
   nodeHeight,
+  nodeSize,
   portAt,
   portCenter,
   ROW_H,
   toWorld,
+  uiTop,
   WHEEL_LINE_PX,
   WORLD_MIN,
   wheelPan,
@@ -35,6 +37,18 @@ describe('layout', () => {
     expect(nodeHeight(l)).toBe(HEADER_H + 12 + 2 * ROW_H);
     expect(nodeHeight([])).toBe(HEADER_H + 12);
     expect(nodeHeight(l, true)).toBe(HEADER_H + 12 + 2 * ROW_H + FOOTER_H);
+  });
+  it('makes room for a plugin UI: wider box, UI under the ports, outputs on the right edge', () => {
+    const ui = { width: 746, height: 638 };
+    expect(nodeSize(l, true, ui)).toEqual({
+      w: 746,
+      h: HEADER_H + 12 + 2 * ROW_H + 638 + FOOTER_H,
+    });
+    expect(nodeSize([], false, { width: 100, height: 50 }).w).toBe(NODE_W);
+    expect(uiTop(l)).toBe(HEADER_H + 12 + 2 * ROW_H);
+    const out = l.find((p) => p.direction === 'out');
+    if (!out) throw new Error('no out');
+    expect(portCenter({ x: 10, y: 0 }, out, 746).x).toBe(756);
   });
   it('puts inputs on the left edge and outputs on the right', () => {
     const origin = { x: 100, y: 50 };

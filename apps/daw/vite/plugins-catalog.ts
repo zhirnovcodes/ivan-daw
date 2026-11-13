@@ -13,7 +13,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import { createReadStream, existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
 import type { Plugin } from 'vite';
-import type { Catalog, CatalogEntry } from '../src/model/catalog';
+import { type Catalog, type CatalogEntry, readUiSize } from '../src/model/catalog';
 
 export interface PluginPackage {
   /** Folder name under plugins/. */
@@ -70,12 +70,14 @@ export function buildCatalog(pluginsDir: string): Catalog {
       );
       continue;
     }
+    const ui = readUiSize(m.ui);
     plugins.push({
       id: p.id,
       name: m.name,
       kind: m.kind as CatalogEntry['kind'],
       url: `/plugins/${p.id}/index.js`,
       ports: m.ports as CatalogEntry['ports'],
+      ...(ui ? { ui } : {}),
     });
   }
   return { plugins };

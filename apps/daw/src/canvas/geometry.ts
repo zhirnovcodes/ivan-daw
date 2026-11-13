@@ -46,27 +46,42 @@ export function layoutPorts(ports: readonly PortInfo[]): PortLayout[] {
   }));
 }
 
-export function nodeHeight(layout: readonly PortLayout[], footer = false): number {
+/** Top of a plugin UI inside its box: under the header and the port rows. */
+export function uiTop(layout: readonly PortLayout[]): number {
   const ins = layout.filter((p) => p.direction === 'in').length;
   const outs = layout.length - ins;
-  return HEADER_H + BODY_PAD * 2 + Math.max(ins, outs) * ROW_H + (footer ? FOOTER_H : 0);
+  return HEADER_H + BODY_PAD * 2 + Math.max(ins, outs) * ROW_H;
 }
 
-export const nodeSize = (layout: readonly PortLayout[], footer = false): Size => ({
-  w: NODE_W,
-  h: nodeHeight(layout, footer),
+/** A plugin UI's size inside a box, from `manifest.ui`. */
+export interface UiBox {
+  width: number;
+  height: number;
+}
+
+/** Box width: 180, or the plugin UI's width when it is wider. */
+export const nodeWidth = (ui?: UiBox): number => (ui ? Math.max(NODE_W, ui.width) : NODE_W);
+
+/** Header, port rows, then the plugin UI (if any), then the volume / pan footer (if any). */
+export function nodeHeight(layout: readonly PortLayout[], footer = false, ui?: UiBox): number {
+  return uiTop(layout) + (ui ? ui.height : 0) + (footer ? FOOTER_H : 0);
+}
+
+export const nodeSize = (layout: readonly PortLayout[], footer = false, ui?: UiBox): Size => ({
+  w: nodeWidth(ui),
+  h: nodeHeight(layout, footer, ui),
 });
 
 /** Port centre relative to the node's top-left corner. Inputs sit on the left edge, outputs on the right. */
-export function portOffset(p: PortLayout): Pt {
+export function portOffset(p: PortLayout, width = NODE_W): Pt {
   return {
-    x: p.direction === 'in' ? 0 : NODE_W,
+    x: p.direction === 'in' ? 0 : width,
     y: HEADER_H + BODY_PAD + p.row * ROW_H + ROW_H / 2,
   };
 }
 
-export function portCenter(origin: Pt, p: PortLayout): Pt {
-  const o = portOffset(p);
+export function portCenter(origin: Pt, p: PortLayout, width = NODE_W): Pt {
+  const o = portOffset(p, width);
   return { x: origin.x + o.x, y: origin.y + o.y };
 }
 

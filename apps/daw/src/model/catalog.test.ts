@@ -79,3 +79,26 @@ describe('mainAudioOut', () => {
     expect(mainAudioOut(MASTER_MANIFEST)).toBeUndefined();
   });
 });
+
+describe('plugin UI size (v1.1)', () => {
+  const entry = {
+    id: 'x.ui',
+    name: 'With UI',
+    kind: 'instrument',
+    url: '/plugins/x.ui/index.js',
+    ports: [],
+  };
+  it('keeps a valid manifest.ui and passes it to the manifest map', () => {
+    const c = parseCatalog({
+      plugins: [{ ...entry, ui: { width: 746, height: 638, resizable: false } }],
+    });
+    expect(c.plugins[0]?.ui).toEqual({ width: 746, height: 638, resizable: false });
+    expect(manifestsFrom(c).get('x.ui')?.ui).toEqual({ width: 746, height: 638, resizable: false });
+  });
+  it('treats a missing, null or zero-sized ui as no UI', () => {
+    for (const ui of [undefined, null, { width: 0, height: 10 }, { width: 'a', height: 1 }]) {
+      const c = parseCatalog({ plugins: [{ ...entry, ui }] });
+      expect(c.plugins[0]?.ui).toBeUndefined();
+    }
+  });
+});

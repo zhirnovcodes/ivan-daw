@@ -6,6 +6,7 @@
 //
 // Layout: [IvanDAW | transport bar] on top, canvas below, node panel on the right when a node is selected.
 
+import { effect } from '@preact/signals-core';
 import { mountCanvas, showToast } from '../canvas';
 import type { IvanDawTestHook } from '../contracts/testHook';
 import { createEngine, type LiveEngine } from '../engine/engine';
@@ -15,7 +16,8 @@ import { mountAddMenu, mountNodePanel, mountTransportBar, setPanelServices } fro
 import { createRouter, type LiveRouter } from '../router/router';
 import { createScheduler, type LiveScheduler } from '../scheduler/scheduler';
 import { loadProject, play, stop } from '../store/actions';
-import { camera, nodeStatus, project, provide, selection } from '../store/store';
+import { camera, nodeStatus, project, provide, selection, uiSlots } from '../store/store';
+import { type Mounted, syncPluginUis } from './pluginUi';
 
 export const DEMO_PROJECT = 'projects/demo.json';
 /** Half a node box, so `+ Add` centres the new box rather than its corner. */
@@ -119,6 +121,17 @@ export async function boot(): Promise<App> {
   mountCanvas(ui.canvas);
   mountNodePanel(ui.side);
   mountAddMenu(ui.menu);
+  // Plugins with a manifest.ui show their own UI inside their node box.
+  const mountedUis = new Map<string, Mounted>();
+  effect(() => {
+    syncPluginUis(mountedUis, {
+      slots: uiSlots.value,
+      status: nodeStatus.value,
+      instance: (id) => engine.get(id)?.instance,
+      onError: notify,
+    });
+  });
+
   // The side column takes no width while nothing is selected.
   selection.subscribe((s) => ui.side.classList.toggle('ivd-empty', !s.node));
 
