@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Note generator: test page</title>
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+      label { display: block; margin: 1rem 0 0.25rem; }
+      button, input { padding: 0.5rem 1rem; font: inherit; }
+      input[type='number'] { width: 6rem; }
+      #status { margin-top: 1rem; font-family: ui-monospace, monospace; }
+    </style>
+  </head>
+  <body>
+    <h1>Note generator</h1>
+    <p>
+      A tiny host: the note generator drives the base sine synth. Press Play: C3 sounds on every beat.
+      Change the BPM while playing and the speed changes at once. Stop silences it.
+    </p>
+    <p>
+      <button id="play" disabled>Play</button>
+      <button id="stop" disabled>Stop</button>
+    </p>
+    <label for="bpm">BPM (60–200)</label>
+    <input id="bpm" type="number" min="60" max="200" step="1" value="120" />
+    <div id="status">loading…</div>
+
+    <script type="module" src="./test-page.js"></script>
+  </body>
+</html>
