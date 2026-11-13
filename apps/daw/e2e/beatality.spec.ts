@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openDemo } from './helpers';
 
 // v1.1 T10 + T12: Beatality, from its pinned CI build, loads as a node with its own UI inside the box.
 test('Beatality loads from the catalog and shows its UI in its box', async ({ page }) => {
@@ -8,7 +9,7 @@ test('Beatality loads from the catalog and shows its UI in its box', async ({ pa
     if (m.type() === 'error') errors.push(m.text());
   });
 
-  await page.goto('/');
+  await openDemo(page);
   await page.getByRole('button', { name: '+ Add' }).click();
   await page.getByRole('menuitem', { name: /Beatality/ }).click();
 
