@@ -1,4 +1,4 @@
-// Master: in (summing GainNode) → master gain → AnalyserNode (meter) → speakers.
+// Master: in (summing GainNode) → master gain → StereoPannerNode (master pan, v1.1) → AnalyserNode (meter) → speakers.
 
 import { glideTo } from './ramp';
 
@@ -11,6 +11,8 @@ export interface Master {
   readonly input: GainNode;
   /** Sets the Master node's volume (0..1.5); the output gain is 0.8 × v. */
   setVolume(v: number): void;
+  /** Sets the Master node's pan (−1..1), glided. */
+  setPan(v: number): void;
   /** RMS of the last ~43 ms at Master's output. */
   rms(): number;
 }
@@ -19,10 +21,12 @@ export function createMaster(ctx: AudioContext): Master {
   const input = ctx.createGain();
   const out = ctx.createGain();
   out.gain.value = MASTER_GAIN;
+  const pan = ctx.createStereoPanner();
   const analyser = ctx.createAnalyser();
   analyser.fftSize = FFT_SIZE;
   input.connect(out);
-  out.connect(analyser);
+  out.connect(pan);
+  pan.connect(analyser);
   analyser.connect(ctx.destination);
   const buf = new Float32Array(FFT_SIZE);
 
@@ -30,6 +34,9 @@ export function createMaster(ctx: AudioContext): Master {
     input,
     setVolume(v) {
       glideTo(out.gain, MASTER_GAIN * v, ctx.currentTime);
+    },
+    setPan(v) {
+      glideTo(pan.pan, v, ctx.currentTime);
     },
     rms() {
       analyser.getFloatTimeDomainData(buf);

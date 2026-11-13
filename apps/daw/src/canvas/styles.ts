@@ -39,6 +39,11 @@ export const CANVAS_CSS = `
 .ivd-port.out i { right: -6px; cursor: crosshair; touch-action: none; }
 .ivd-port.valid i { box-shadow: 0 0 0 3px rgba(255,255,255,0.35), 0 0 10px 3px var(--c); }
 .ivd-port.invalid { opacity: 0.25; }
+.ivd-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 52px; box-sizing: border-box; padding: 4px 10px;
+  border-top: 1px solid #44474f; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.ivd-foot-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #c4c6cc; }
+.ivd-foot-row span { width: 26px; flex: none; }
+.ivd-foot-row input { flex: 1; min-width: 0; height: 16px; margin: 0; accent-color: #8ab4f8; }
 .ivd-toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); background: #3b2a2a; color: #ffd7d7;
   border: 1px solid #ef5350; border-radius: 6px; padding: 8px 14px; font: 13px system-ui, sans-serif; z-index: 1000; pointer-events: none; }
 `;

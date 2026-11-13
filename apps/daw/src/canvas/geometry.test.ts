@@ -6,6 +6,7 @@ import {
   cableMidpoint,
   cablePath,
   clampToWorld,
+  FOOTER_H,
   HEADER_H,
   layoutPorts,
   NODE_W,
@@ -33,6 +34,7 @@ describe('layout', () => {
   it('height covers the taller side', () => {
     expect(nodeHeight(l)).toBe(HEADER_H + 12 + 2 * ROW_H);
     expect(nodeHeight([])).toBe(HEADER_H + 12);
+    expect(nodeHeight(l, true)).toBe(HEADER_H + 12 + 2 * ROW_H + FOOTER_H);
   });
   it('puts inputs on the left edge and outputs on the right', () => {
     const origin = { x: 100, y: 50 };

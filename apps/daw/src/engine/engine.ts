@@ -210,6 +210,7 @@ export function createEngine(opts: EngineOptions): LiveEngine {
   }
 
   let masterVolume = Number.NaN;
+  let masterPan = Number.NaN;
 
   function sync(nodes: readonly GraphNode[]): void {
     const ids = new Set<string>();
@@ -219,6 +220,10 @@ export function createEngine(opts: EngineOptions): LiveEngine {
         if (node.gain !== masterVolume) {
           masterVolume = node.gain;
           master.setVolume(node.gain);
+        }
+        if (node.pan !== masterPan) {
+          masterPan = node.pan;
+          master.setPan(node.pan);
         }
         continue;
       }

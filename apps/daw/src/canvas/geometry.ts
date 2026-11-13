@@ -8,6 +8,8 @@ export const NODE_W = 180;
 export const HEADER_H = 28;
 export const ROW_H = 22;
 export const BODY_PAD = 6;
+/** Volume + pan footer on nodes with a main audio out, and on Master (v1.1). */
+export const FOOTER_H = 52;
 export const PORT_D = 12;
 export const CURVE_OUT = 80;
 export const CABLE_HIT_W = 12;
@@ -44,15 +46,15 @@ export function layoutPorts(ports: readonly PortInfo[]): PortLayout[] {
   }));
 }
 
-export function nodeHeight(layout: readonly PortLayout[]): number {
+export function nodeHeight(layout: readonly PortLayout[], footer = false): number {
   const ins = layout.filter((p) => p.direction === 'in').length;
   const outs = layout.length - ins;
-  return HEADER_H + BODY_PAD * 2 + Math.max(ins, outs) * ROW_H;
+  return HEADER_H + BODY_PAD * 2 + Math.max(ins, outs) * ROW_H + (footer ? FOOTER_H : 0);
 }
 
-export const nodeSize = (layout: readonly PortLayout[]): Size => ({
+export const nodeSize = (layout: readonly PortLayout[], footer = false): Size => ({
   w: NODE_W,
-  h: nodeHeight(layout),
+  h: nodeHeight(layout, footer),
 });
 
 /** Port centre relative to the node's top-left corner. Inputs sit on the left edge, outputs on the right. */

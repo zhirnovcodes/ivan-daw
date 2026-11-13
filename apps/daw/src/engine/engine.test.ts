@@ -20,6 +20,7 @@ import {
   FakeAudioContext,
   FakeGain,
   type FakeNode,
+  FakePanner,
   reaches,
 } from './testing/fakeAudio';
 
@@ -207,14 +208,16 @@ afterEach(() => {
 });
 
 describe('Master', () => {
-  it('routes in → master gain 0.8 → analyser → speakers', () => {
+  it('routes in → master gain 0.8 → master pan → analyser → speakers', () => {
     start([]);
     expect(reaches(node(engine.master), ctx.destination)).toBe(true);
     const gains = ctx.created.filter((n) => n instanceof FakeGain) as FakeGain[];
     const out = gains.find((g) => g.gain.value === MASTER_GAIN);
     expect(out).toBeDefined();
     expect(node(engine.master).outputs.has(out as FakeNode)).toBe(true);
-    expect(out?.outputs.has(analyser())).toBe(true);
+    const pan = [...(out?.outputs ?? [])].find((n) => n instanceof FakePanner) as FakePanner;
+    expect(pan).toBeDefined();
+    expect(pan.outputs.has(analyser())).toBe(true);
     expect(nodeStatus.value.master).toBe('ready');
   });
 
@@ -226,6 +229,14 @@ describe('Master', () => {
     setGain('master', 1.5);
     expect(out.gain.target).toBeCloseTo(1.2, 9);
     expect(out.gain.calls.at(-1)?.[0]).toBe('setTargetAtTime');
+  });
+
+  it("follows the Master node's pan, glided", () => {
+    start([]);
+    const pan = ctx.created.find((n) => n instanceof FakePanner) as FakePanner;
+    setPan('master', -0.5);
+    expect(pan.pan.target).toBeCloseTo(-0.5, 9);
+    expect(pan.pan.calls.at(-1)?.[0]).toBe('setTargetAtTime');
   });
 
   it('reports RMS from the analyser', () => {

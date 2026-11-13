@@ -6,9 +6,18 @@
 import { effect } from '@preact/signals-core';
 import { REFUSE_TEXT } from '../contracts/router';
 import type { MountUi } from '../contracts/ui';
-import type { PortsManifest } from '../model/catalog';
-import type { PortRef } from '../model/project';
-import { connect, disconnect, moveNode, panCamera, removeNode, select } from '../store/actions';
+import { mainAudioOut, type PortsManifest } from '../model/catalog';
+import { GAIN_MAX, MASTER_PLUGIN, type PortRef } from '../model/project';
+import {
+  connect,
+  disconnect,
+  moveNode,
+  panCamera,
+  removeNode,
+  select,
+  setGain,
+  setPan,
+} from '../store/actions';
 import { camera, deps, nodeErrors, nodeStatus, project, selection } from '../store/store';
 import {
   CABLE_HIT_W,
@@ -97,7 +106,13 @@ interface NodeView {
   plugin: string;
   layout: PortLayout[];
   portEls: Map<string, HTMLElement>;
+  /** Volume and pan on the box, for nodes with a main audio out and for Master. */
+  footer?: { el: HTMLElement; vol: HTMLInputElement; pan: HTMLInputElement };
 }
+
+/** Whether a node shows the volume / pan footer. */
+const hasFooter = (plugin: string, manifest: PortsManifest | undefined): boolean =>
+  plugin === MASTER_PLUGIN || (manifest !== undefined && mainAudioOut(manifest) !== undefined);
 
 export const mountCanvas: MountUi = (root) => {
   ensureStyles();
@@ -150,7 +165,10 @@ export const mountCanvas: MountUi = (root) => {
   };
 
   const ctx = (): GestureCtx => ({
-    sizeOf: (id) => nodeSize(views.get(id)?.layout ?? []),
+    sizeOf: (id) => {
+      const v = views.get(id);
+      return nodeSize(v?.layout ?? [], v?.footer !== undefined);
+    },
   });
 
   function run(e: Effect): void {
@@ -357,6 +375,40 @@ export const mountCanvas: MountUi = (root) => {
 
   const portCenterY = (l: PortLayout): number => portCenter({ x: 0, y: 0 }, l).y;
 
+  function buildFooter(id: string, v: NodeView): void {
+    v.footer?.el.remove();
+    v.footer = undefined;
+    if (!hasFooter(v.plugin, v.manifest)) return;
+    const el = h('div', 'ivd-foot');
+    const range = (label: string, min: number, max: number): HTMLInputElement => {
+      const row = h('label', 'ivd-foot-row');
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.min = String(min);
+      input.max = String(max);
+      input.step = '0.01';
+      input.setAttribute('aria-label', label);
+      row.append(h('span', '', label), input);
+      el.append(row);
+      return input;
+    };
+    const vol = range('Vol', 0, GAIN_MAX);
+    const pan = range('Pan', -1, 1);
+    vol.dataset.control = 'gain';
+    pan.dataset.control = 'pan';
+    vol.addEventListener('input', () => setGain(id, Number(vol.value)));
+    pan.addEventListener('input', () => setPan(id, Number(pan.value)));
+    pan.addEventListener('dblclick', () => setPan(id, 0));
+    // The footer is for the sliders: no node drag, no empty-canvas click, but it selects the node.
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      if (selection.peek().node !== id) select({ node: id });
+    });
+    v.el.appendChild(el);
+    v.footer = { el, vol, pan };
+  }
+
   function renderCables(): void {
     cableLayer.replaceChildren();
     const sel = selection.value;
@@ -406,10 +458,15 @@ export const mountCanvas: MountUi = (root) => {
       if (v.plugin !== n.plugin || v.manifest !== manifest) {
         v.plugin = n.plugin;
         buildPorts(n.id, v, manifest);
+        buildFooter(n.id, v);
         v.title.textContent = manifest?.name ?? n.plugin;
       }
       v.el.style.transform = `translate(${n.x}px, ${n.y}px)`;
-      v.el.style.height = `${nodeSize(v.layout).h}px`;
+      v.el.style.height = `${nodeSize(v.layout, v.footer !== undefined).h}px`;
+      if (v.footer) {
+        if (Number(v.footer.vol.value) !== n.gain) v.footer.vol.value = String(n.gain);
+        if (Number(v.footer.pan.value) !== n.pan) v.footer.pan.value = String(n.pan);
+      }
       v.el.classList.toggle('selected', sel.node === n.id);
       const st = status[n.id] ?? 'loading';
       v.dot.className = `ivd-dot ${st}`;
