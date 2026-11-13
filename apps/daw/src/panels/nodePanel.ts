@@ -4,6 +4,7 @@
 import { computed, effect, untracked } from '@preact/signals-core';
 import type { ParameterInfo, PluginInstance } from 'ivandaw-core';
 import type { MountUi } from '../contracts/ui';
+import { CTL_GAIN, CTL_PAN, paramPort } from '../model/control';
 import { GAIN_MAX, MASTER_ID } from '../model/project';
 import { removeNode, setGain, setPan, setParam } from '../store/actions';
 import { deps, type NodeStatus, nodeErrors, nodeStatus, project, selection } from '../store/store';
@@ -48,6 +49,35 @@ function slider(min: number, max: number, step: number): HTMLInputElement {
   s.max = String(max);
   s.step = String(step);
   return s;
+}
+
+/**
+ * v1.1: while a control cable drives this row's control input, the row shows "← <source>" and its
+ * controls are disabled; they come back when the cable goes.
+ */
+function markBound(
+  rowEl: HTMLElement,
+  nodeId: string,
+  port: string,
+  own: (d: Disposer) => void,
+): void {
+  const src = h('span', 'ivp-src');
+  rowEl.append(src);
+  own(
+    effect(() => {
+      const p = project.value;
+      const cable = p.cables.find((c) => c.to.node === nodeId && c.to.port === port);
+      const from = cable ? p.nodes.find((n) => n.id === cable.from.node) : undefined;
+      const name = from ? (deps.value.manifests.get(from.plugin)?.name ?? from.plugin) : '';
+      rowEl.classList.toggle('ivp-bound', cable !== undefined);
+      src.textContent = cable ? `← ${name}` : '';
+      for (const c of rowEl.querySelectorAll<HTMLInputElement | HTMLButtonElement>(
+        'input, button',
+      )) {
+        c.disabled = cable !== undefined;
+      }
+    }),
+  );
 }
 
 export const mountNodePanel: MountUi = (root) => {
@@ -132,6 +162,8 @@ export const mountNodePanel: MountUi = (root) => {
       }),
     );
     panel.append(vol.el, pan.el);
+    markBound(vol.el, id, CTL_GAIN, own);
+    markBound(pan.el, id, CTL_PAN, own);
 
     // Parameter strip
     if (id !== MASTER_ID) {
@@ -150,7 +182,13 @@ export const mountNodePanel: MountUi = (root) => {
       } else if (params.length === 0) {
         panel.append(h('div', 'ivp-note', 'No parameters.'));
       }
-      if (inst) for (const p of params) panel.append(paramControl(id, p, inst, own));
+      if (inst) {
+        for (const p of params) {
+          const r = paramControl(id, p, inst, own);
+          panel.append(r);
+          markBound(r, id, paramPort(p.id), own);
+        }
+      }
     }
 
     if (id !== MASTER_ID) {

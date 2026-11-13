@@ -46,6 +46,14 @@ export const CANVAS_CSS = `
 .ivd-foot-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #c4c6cc; }
 .ivd-foot-row span { width: 26px; flex: none; }
 .ivd-foot-row input { flex: 1; min-width: 0; height: 16px; margin: 0; accent-color: #8ab4f8; }
+.ivd-cable-label { fill: #ce93d8; font: 11px system-ui, sans-serif; text-anchor: end; pointer-events: none; }
+.ivd-picker { position: absolute; z-index: 20; min-width: 180px; max-height: 300px; overflow-y: auto; background: #2b2d34;
+  border: 1px solid #8ab4f8; border-radius: 6px; padding: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+.ivd-picker button { display: block; width: 100%; text-align: left; background: none; border: 0; color: #e6e6ea;
+  font: 13px system-ui, sans-serif; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+.ivd-picker button:hover, .ivd-picker button:focus { background: #3b3e48; outline: none; }
+.ivd-picker-group { font-size: 11px; color: #8a8d96; padding: 6px 8px 2px; text-transform: uppercase; }
+.ivd-foot-row input:disabled { opacity: 0.4; }
 .ivd-toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); background: #3b2a2a; color: #ffd7d7;
   border: 1px solid #ef5350; border-radius: 6px; padding: 8px 14px; font: 13px system-ui, sans-serif; z-index: 1000; pointer-events: none; }
 `;

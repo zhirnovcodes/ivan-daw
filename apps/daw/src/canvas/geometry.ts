@@ -35,7 +35,9 @@ export interface PortLayout {
 }
 
 /** Inputs go on the left, outputs on the right; each side fills its rows top to bottom. */
-export function layoutPorts(ports: readonly PortInfo[]): PortLayout[] {
+export function layoutPorts(
+  ports: readonly Pick<PortInfo, 'id' | 'label' | 'kind' | 'direction'>[],
+): PortLayout[] {
   const rows = { in: 0, out: 0 };
   return ports.map((p) => ({
     id: p.id,

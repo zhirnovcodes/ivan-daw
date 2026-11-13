@@ -19,6 +19,9 @@ export const PANELS_CSS = `
 .ivp-status.error { color: #000; font-weight: 600; }
 .ivp-err { border: 1px solid #000; padding: 6px 8px; border-radius: 4px; word-break: break-word; }
 .ivp-sect { font-weight: 600; margin-top: 4px; border-top: 1px solid #ccc; padding-top: 8px; }
+.ivp-src { grid-column: 1 / -1; font-size: 11px; color: #6a1b9a; }
+.ivp-src:empty { display: none; }
+.ivp-row.ivp-bound input, .ivp-row.ivp-bound button { opacity: 0.45; }
 .ivp-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; }
 .ivp-row label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ivp-val { font-variant-numeric: tabular-nums; color: #444; text-align: right; }

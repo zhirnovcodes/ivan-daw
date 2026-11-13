@@ -7,7 +7,7 @@
 // Layout: [IvanDAW | transport bar] on top, canvas below, node panel on the right when a node is selected.
 
 import { effect } from '@preact/signals-core';
-import { mountCanvas, showToast } from '../canvas';
+import { mountCanvas, setCanvasServices, showToast } from '../canvas';
 import type { IvanDawTestHook } from '../contracts/testHook';
 import { createEngine, type LiveEngine } from '../engine/engine';
 import { type Catalog, fetchCatalog, manifestsFrom } from '../model/catalog';
@@ -116,6 +116,8 @@ export async function boot(): Promise<App> {
       };
     },
   });
+
+  setCanvasServices({ parameters: (id) => engine.get(id)?.instance.parameters() ?? [] });
 
   mountTransportBar(ui.bar);
   mountCanvas(ui.canvas);

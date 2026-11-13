@@ -7,6 +7,7 @@ import { effect } from '@preact/signals-core';
 import { REFUSE_TEXT } from '../contracts/router';
 import type { MountUi } from '../contracts/ui';
 import { mainAudioOut, type PortsManifest } from '../model/catalog';
+import { CTL_GAIN, CTL_PAN, controlLabel, isControlPort } from '../model/control';
 import { GAIN_MAX, MASTER_PLUGIN, type PortRef } from '../model/project';
 import {
   connect,
@@ -20,6 +21,7 @@ import {
   setUiSlot,
 } from '../store/actions';
 import { camera, deps, nodeErrors, nodeStatus, project, selection } from '../store/store';
+import { CTL_SPOT, controlChoices, spotOf } from './controls';
 import {
   CABLE_HIT_W,
   cableMidpoint,
@@ -48,6 +50,7 @@ import {
   reduce,
   type Target,
 } from './gesture';
+import { canvasServices } from './services';
 import { CANVAS_CSS } from './styles';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -157,7 +160,8 @@ export const mountCanvas: MountUi = (root) => {
 
   const portPoint = (ref: PortRef): Pt | undefined => {
     const n = project.peek().nodes.find((x) => x.id === ref.node);
-    const l = views.get(ref.node)?.layout.find((p) => p.id === ref.port);
+    const spot = spotOf(ref.port);
+    const l = views.get(ref.node)?.layout.find((p) => p.id === spot);
     const w = views.get(ref.node)?.w ?? NODE_W;
     return n && l ? portCenter(n, l, w) : undefined;
   };
@@ -193,6 +197,10 @@ export const mountCanvas: MountUi = (root) => {
         select(e.sel);
         break;
       case 'connect': {
+        if (e.to.port === CTL_SPOT) {
+          openPicker(e.from, e.to.node);
+          break;
+        }
         const r = connect(e.from, e.to);
         if (!r.ok) showToast(REFUSE_TEXT[r.reason]);
         break;
@@ -216,15 +224,69 @@ export const mountCanvas: MountUi = (root) => {
     drawOverlay();
   }
 
+  /** What a control cable from `from` may drive on `node`, already checked by the router. */
+  function choicesFor(from: PortRef, node: string) {
+    const { router, manifests } = deps.peek();
+    const p = project.peek();
+    const hasStrip = views.get(node)?.footer !== undefined;
+    return controlChoices(hasStrip, canvasServices().parameters(node)).filter(
+      (c) => router.validate(p, manifests, from, { node, port: c.port }).ok,
+    );
+  }
+
   function startConnect(from: PortRef): void {
     const { router, manifests } = deps.peek();
     const p = project.peek();
     validity = new Map();
     for (const spot of inputSpots()) {
-      const v = router.validate(p, manifests, from, spot.ref);
-      validity.set(`${spot.ref.node}:${spot.ref.port}`, v.ok);
+      const ok =
+        spot.ref.port === CTL_SPOT
+          ? choicesFor(from, spot.ref.node).length > 0
+          : router.validate(p, manifests, from, spot.ref).ok;
+      validity.set(`${spot.ref.node}:${spot.ref.port}`, ok);
     }
   }
+
+  // The control-input picker: opens where a control cable was dropped on a node's ctl spot.
+  let picker: HTMLElement | undefined;
+  let lastUp: Pt = { x: 0, y: 0 };
+  const closePicker = (): void => {
+    picker?.remove();
+    picker = undefined;
+  };
+  function openPicker(from: PortRef, node: string): void {
+    closePicker();
+    const choices = choicesFor(from, node);
+    if (choices.length === 0) {
+      showToast('nothing on this node takes a control cable yet');
+      return;
+    }
+    const el = h('div', 'ivd-picker');
+    el.setAttribute('role', 'menu');
+    el.setAttribute('aria-label', 'Control what');
+    let group: string | undefined;
+    for (const c of choices) {
+      if (c.group && c.group !== group) el.append(h('div', 'ivd-picker-group', c.group));
+      group = c.group;
+      const b = h('button', '', c.label);
+      b.type = 'button';
+      b.setAttribute('role', 'menuitem');
+      b.dataset.port = c.port;
+      b.addEventListener('click', () => {
+        closePicker();
+        const r = connect(from, { node, port: c.port });
+        if (!r.ok) showToast(REFUSE_TEXT[r.reason]);
+      });
+      el.append(b);
+    }
+    el.addEventListener('pointerdown', (e) => e.stopPropagation());
+    el.addEventListener('wheel', (e) => e.stopPropagation());
+    el.style.left = `${Math.max(4, Math.min(lastUp.x, canvas.clientWidth - 220))}px`;
+    el.style.top = `${Math.max(4, Math.min(lastUp.y, canvas.clientHeight - 300))}px`;
+    canvas.append(el);
+    picker = el;
+  }
+  canvas.addEventListener('pointerdown', () => closePicker());
 
   /** Temporary cable and the glow / dim on input ports. Runs on every gesture change. */
   function drawOverlay(): void {
@@ -272,6 +334,7 @@ export const mountCanvas: MountUi = (root) => {
     const up = (u: PointerEvent): void => {
       end(u);
       const at = rel(u);
+      lastUp = screenPt(u);
       const hit = portAt(at, inputSpots());
       dispatch({ type: 'up', at, ...(hit ? { drop: hit.ref } : {}) });
     };
@@ -379,7 +442,12 @@ export const mountCanvas: MountUi = (root) => {
     for (const el of v.portEls.values()) el.remove();
     v.portEls.clear();
     v.manifest = manifest;
-    v.layout = layoutPorts(manifest?.ports ?? []);
+    // Every node with a known manifest gets the one dotted ctl input for control cables (v1.1).
+    v.layout = layoutPorts(
+      manifest
+        ? [...manifest.ports, { id: CTL_SPOT, label: 'ctl', kind: 'modulation', direction: 'in' }]
+        : [],
+    );
     for (const l of v.layout) {
       const port = h('div', `ivd-port ${l.direction} ${l.kind}`);
       port.dataset.port = l.id;
@@ -475,6 +543,12 @@ export const mountCanvas: MountUi = (root) => {
       const hit = s('path', { d, 'stroke-width': CABLE_HIT_W }, 'ivd-hit');
       hit.addEventListener('pointerdown', (e) => down(e, { kind: 'cable', id: c.id }));
       g.append(s('path', { d }, `ivd-cable ${kind}${selected ? ' selected' : ''}`), hit);
+      if (isControlPort(c.to.port)) {
+        const params = canvasServices().parameters(c.to.node);
+        const label = s('text', { x: b.x - 10, y: b.y - 8 }, 'ivd-cable-label');
+        label.textContent = controlLabel(c.to.port, (id) => params.find((p) => p.id === id)?.label);
+        g.appendChild(label);
+      }
       if (selected) {
         const m = cableMidpoint(a, b);
         const x = s('g', { transform: `translate(${m.x} ${m.y})` }, 'ivd-x');
@@ -519,6 +593,11 @@ export const mountCanvas: MountUi = (root) => {
       if (v.footer) {
         if (Number(v.footer.vol.value) !== n.gain) v.footer.vol.value = String(n.gain);
         if (Number(v.footer.pan.value) !== n.pan) v.footer.pan.value = String(n.pan);
+        // A control cable drives it now: the slider shows the resting value and waits.
+        const bound = (port: string) =>
+          p.cables.some((c) => c.to.node === n.id && c.to.port === port);
+        v.footer.vol.disabled = bound(CTL_GAIN);
+        v.footer.pan.disabled = bound(CTL_PAN);
       }
       v.el.classList.toggle('selected', sel.node === n.id);
       const st = status[n.id] ?? 'loading';
@@ -539,6 +618,7 @@ export const mountCanvas: MountUi = (root) => {
   });
 
   const onKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape') closePicker();
     const t = e.target;
     if (
       t instanceof HTMLElement &&
