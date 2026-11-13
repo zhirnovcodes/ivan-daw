@@ -39,6 +39,8 @@ export function provide(next: Partial<StoreDeps>): void {
 
 export const project = signal<Project>(emptyProject());
 export const selection = signal<Selection>({});
+/** The world point shown at the canvas's top-left corner. View state: not part of the project, not saved. */
+export const camera = signal<{ x: number; y: number }>({ x: 0, y: 0 });
 /** Written by the engine through `setNodeStatus`. Master is always 'ready'. */
 export const nodeStatus = signal<Record<string, NodeStatus>>({});
 /** Error message for each node whose status is 'error'. */

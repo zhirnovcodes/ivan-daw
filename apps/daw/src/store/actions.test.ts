@@ -10,6 +10,7 @@ import {
   disconnect,
   loadProject,
   moveNode,
+  panCamera,
   pause,
   play,
   removeNode,
@@ -22,6 +23,7 @@ import {
   stop,
 } from './actions';
 import {
+  camera,
   defaultDeps,
   deps,
   nodeErrors,
@@ -349,5 +351,22 @@ describe('select / setNodeStatus', () => {
     expect(nodeErrors.value).toEqual({ n2: 'plugin not found' });
     setNodeStatus('n2', 'ready');
     expect(nodeErrors.value).toEqual({});
+  });
+});
+
+describe('panCamera', () => {
+  it('moves the camera and leaves the project alone', () => {
+    camera.value = { x: 0, y: 0 };
+    const before = project.value;
+    panCamera(30, -12);
+    panCamera(-5, 2);
+    expect(camera.value).toEqual({ x: 25, y: -10 });
+    expect(project.value).toBe(before);
+  });
+  it('does not notify for a zero move', () => {
+    camera.value = { x: 4, y: 4 };
+    const same = camera.value;
+    panCamera(0, 0);
+    expect(camera.value).toBe(same);
   });
 });

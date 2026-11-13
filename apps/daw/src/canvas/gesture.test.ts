@@ -8,7 +8,7 @@ import {
   type Target,
 } from './gesture';
 
-const ctx: GestureCtx = { bounds: { w: 800, h: 600 }, sizeOf: () => ({ w: 180, h: 100 }) };
+const ctx: GestureCtx = { sizeOf: () => ({ w: 180, h: 100 }) };
 const header = { kind: 'header', node: 'n1', nodePos: { x: 100, y: 100 } } as const;
 
 describe('drag a node', () => {
@@ -18,10 +18,13 @@ describe('drag a node', () => {
     const move = reduce(down.state, { type: 'move', at: { x: 220, y: 160 } }, ctx);
     expect(move.effects).toEqual([{ type: 'moveNode', id: 'n1', x: 200, y: 150 }]);
   });
-  it('stays inside the canvas', () => {
+  it('goes past the window edges, down to the world minimum', () => {
     const s: GestureState = { mode: 'drag', node: 'n1', dx: 10, dy: 10 };
     expect(reduce(s, { type: 'move', at: { x: -50, y: 9999 } }, ctx).effects).toEqual([
-      { type: 'moveNode', id: 'n1', x: 0, y: 500 },
+      { type: 'moveNode', id: 'n1', x: -60, y: 9989 },
+    ]);
+    expect(reduce(s, { type: 'move', at: { x: -9000, y: 0 } }, ctx).effects).toEqual([
+      { type: 'moveNode', id: 'n1', x: -2000, y: -10 },
     ]);
   });
   it('ends on pointer up', () => {

@@ -4,7 +4,7 @@
 
 import type { PortRef } from '../model/project';
 import { MASTER_ID } from '../model/project';
-import { clampToBounds, type Pt, type Size } from './geometry';
+import { clampToWorld, type Pt, type Size } from './geometry';
 
 export type Selection = { node?: string; cable?: string };
 
@@ -37,7 +37,6 @@ export type Effect =
   | { type: 'removeNode'; id: string };
 
 export interface GestureCtx {
-  bounds: Size;
   sizeOf(node: string): Size;
 }
 
@@ -84,11 +83,8 @@ export function reduce(state: GestureState, ev: GestureEvent, ctx: GestureCtx): 
     }
     case 'move': {
       if (state.mode === 'drag') {
-        const p = clampToBounds(
-          { x: ev.at.x - state.dx, y: ev.at.y - state.dy },
-          ctx.sizeOf(state.node),
-          ctx.bounds,
-        );
+        void ctx;
+        const p = clampToWorld({ x: ev.at.x - state.dx, y: ev.at.y - state.dy });
         return { state, effects: [{ type: 'moveNode', id: state.node, x: p.x, y: p.y }] };
       }
       if (state.mode === 'connect') return { state: { ...state, at: ev.at }, effects: [] };

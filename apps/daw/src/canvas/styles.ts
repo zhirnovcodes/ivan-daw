@@ -2,6 +2,9 @@ export const CANVAS_CSS = `
 .ivd-canvas { position: relative; width: 100%; height: 100%; overflow: hidden; background-color: #17181c;
   background-image: radial-gradient(#2a2c33 1px, transparent 1px); background-size: 24px 24px;
   font: 13px system-ui, sans-serif; color: #e6e6ea; user-select: none; -webkit-user-select: none; }
+.ivd-canvas.panning { cursor: move; }
+.ivd-world { position: absolute; inset: 0; pointer-events: none; transform-origin: 0 0; }
+.ivd-nodes .ivd-node { pointer-events: auto; }
 .ivd-cables { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .ivd-cable { fill: none; stroke-width: 2.5; stroke-linecap: round; }
 .ivd-cable.audio { stroke: #4fc3f7; }

@@ -15,7 +15,7 @@ import { mountAddMenu, mountNodePanel, mountTransportBar, setPanelServices } fro
 import { createRouter, type LiveRouter } from '../router/router';
 import { createScheduler, type LiveScheduler } from '../scheduler/scheduler';
 import { loadProject, play, stop } from '../store/actions';
-import { nodeStatus, project, provide, selection } from '../store/store';
+import { camera, nodeStatus, project, provide, selection } from '../store/store';
 
 export const DEMO_PROJECT = 'projects/demo.json';
 /** Half a node box, so `+ Add` centres the new box rather than its corner. */
@@ -105,10 +105,12 @@ export async function boot(): Promise<App> {
     now: () => engine.context.currentTime,
     catalog: async () => catalog,
     canvasCenter: () => {
+      // The middle of what is on screen now, in world coordinates.
       const r = ui.canvas.getBoundingClientRect();
+      const c = camera.peek();
       return {
-        x: Math.max(0, Math.round(r.width / 2 - NODE_HALF.x)),
-        y: Math.max(0, Math.round(r.height / 2 - NODE_HALF.y)),
+        x: Math.round(c.x + r.width / 2 - NODE_HALF.x),
+        y: Math.round(c.y + r.height / 2 - NODE_HALF.y),
       };
     },
   });
@@ -127,6 +129,7 @@ export async function boot(): Promise<App> {
       rms: () => engine.rms(),
       project: () => project.value,
       status: () => nodeStatus.value,
+      camera: () => camera.value,
     };
     window.__ivandaw = hook;
   }

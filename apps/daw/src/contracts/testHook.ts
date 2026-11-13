@@ -11,6 +11,8 @@ export interface IvanDawTestHook {
   project(): Project;
   /** Node id → 'loading' | 'ready' | 'error'. */
   status(): Record<string, string>;
+  /** The canvas camera (world point at the canvas's top-left). v1.1. */
+  camera(): { x: number; y: number };
 }
 
 declare global {

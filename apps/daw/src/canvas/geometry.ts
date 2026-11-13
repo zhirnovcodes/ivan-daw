@@ -1,4 +1,4 @@
-// Pure canvas geometry: node layout, port positions, cable curves, hit testing, bounds.
+// Pure canvas geometry: node layout, port positions, cable curves, hit testing, camera.
 // No DOM here, so every function is unit-tested. Tech design: "Canvas".
 
 import type { PortInfo } from 'ivandaw-core';
@@ -118,9 +118,28 @@ export function portAt(
   return best;
 }
 
-/** Keeps a box of `size` fully inside `bounds`. A box larger than the bounds sticks to the top-left. */
-export function clampToBounds(pos: Pt, size: Size, bounds: Size): Pt {
-  const maxX = Math.max(0, bounds.w - size.w);
-  const maxY = Math.max(0, bounds.h - size.h);
-  return { x: Math.min(maxX, Math.max(0, pos.x)), y: Math.min(maxY, Math.max(0, pos.y)) };
+/** The lowest world x / y a node may have, so a box dragged far off can still be found. */
+export const WORLD_MIN = -2000;
+
+/** Keeps a node's top-left at or above WORLD_MIN. There is no upper limit: the camera follows. */
+export function clampToWorld(pos: Pt): Pt {
+  return { x: Math.max(WORLD_MIN, pos.x), y: Math.max(WORLD_MIN, pos.y) };
+}
+
+/** Screen point (relative to the canvas) → world point, for a camera whose top-left is at `camera`. */
+export const toWorld = (screen: Pt, camera: Pt): Pt => ({
+  x: screen.x + camera.x,
+  y: screen.y + camera.y,
+});
+
+/** Pixels per line for wheel events in line mode (Firefox mouse wheels). */
+export const WHEEL_LINE_PX = 16;
+
+/** How far a wheel event moves the camera, in px. Page mode moves one `pageH`. */
+export function wheelPan(
+  e: { deltaX: number; deltaY: number; deltaMode: number },
+  pageH: number,
+): Pt {
+  const k = e.deltaMode === 1 ? WHEEL_LINE_PX : e.deltaMode === 2 ? pageH : 1;
+  return { x: e.deltaX * k, y: e.deltaY * k };
 }

@@ -1,5 +1,6 @@
 // P5 Canvas: nodes as DOM boxes, cables as one SVG layer behind them.
-// Reads the project, selection, nodeStatus and nodeErrors signals and calls store actions. No audio.
+// Reads the project, selection, nodeStatus, nodeErrors and camera signals and calls store actions. No audio.
+// Nodes and cables live in one "world" layer that the camera moves; the canvas itself stays put.
 // Tech design: "Canvas".
 
 import { effect } from '@preact/signals-core';
@@ -7,8 +8,8 @@ import { REFUSE_TEXT } from '../contracts/router';
 import type { MountUi } from '../contracts/ui';
 import type { PortsManifest } from '../model/catalog';
 import type { PortRef } from '../model/project';
-import { connect, disconnect, moveNode, removeNode, select } from '../store/actions';
-import { deps, nodeErrors, nodeStatus, project, selection } from '../store/store';
+import { connect, disconnect, moveNode, panCamera, removeNode, select } from '../store/actions';
+import { camera, deps, nodeErrors, nodeStatus, project, selection } from '../store/store';
 import {
   CABLE_HIT_W,
   cableMidpoint,
@@ -20,6 +21,8 @@ import {
   type Pt,
   portAt,
   portCenter,
+  toWorld,
+  wheelPan,
 } from './geometry';
 import {
   type Effect,
@@ -105,7 +108,9 @@ export const mountCanvas: MountUi = (root) => {
   tempPath.style.display = 'none';
   svg.append(cableLayer, tempPath);
   const nodeLayer = h('div', 'ivd-nodes');
-  canvas.append(svg, nodeLayer);
+  const world = h('div', 'ivd-world');
+  world.append(svg, nodeLayer);
+  canvas.append(world);
   root.appendChild(canvas);
 
   const views = new Map<string, NodeView>();
@@ -113,10 +118,13 @@ export const mountCanvas: MountUi = (root) => {
   /** While connecting: 'node:port' → is that input a valid target. */
   let validity = new Map<string, boolean>();
 
-  const rel = (e: PointerEvent): Pt => {
+  /** Pointer position relative to the canvas's top-left, in screen px. */
+  const screenPt = (e: { clientX: number; clientY: number }): Pt => {
     const r = canvas.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
+  /** Pointer position in world px: what node positions and port centres use. */
+  const rel = (e: PointerEvent): Pt => toWorld(screenPt(e), camera.peek());
 
   const nodePos = (id: string): Pt => {
     const n = project.peek().nodes.find((x) => x.id === id);
@@ -142,10 +150,6 @@ export const mountCanvas: MountUi = (root) => {
   };
 
   const ctx = (): GestureCtx => ({
-    bounds: {
-      w: canvas.clientWidth > 0 ? canvas.clientWidth : Number.POSITIVE_INFINITY,
-      h: canvas.clientHeight > 0 ? canvas.clientHeight : Number.POSITIVE_INFINITY,
-    },
     sizeOf: (id) => nodeSize(views.get(id)?.layout ?? []),
   });
 
@@ -259,6 +263,58 @@ export const mountCanvas: MountUi = (root) => {
 
   canvas.addEventListener('pointerdown', (e) => {
     if (e.target === canvas) down(e, { kind: 'empty' });
+  });
+
+  // Camera pan, right button: anywhere on the canvas, over nodes too (capture phase, so it wins).
+  canvas.addEventListener(
+    'pointerdown',
+    (e) => {
+      if (e.button !== 2) return;
+      e.preventDefault();
+      e.stopPropagation();
+      let last = screenPt(e);
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {
+        // Synthetic events may have no active pointer.
+      }
+      canvas.classList.add('panning');
+      const move = (m: PointerEvent): void => {
+        const p = screenPt(m);
+        panCamera(last.x - p.x, last.y - p.y);
+        last = p;
+      };
+      const end = (): void => {
+        canvas.removeEventListener('pointermove', move);
+        canvas.removeEventListener('pointerup', end);
+        canvas.removeEventListener('pointercancel', end);
+        canvas.classList.remove('panning');
+      };
+      canvas.addEventListener('pointermove', move);
+      canvas.addEventListener('pointerup', end);
+      canvas.addEventListener('pointercancel', end);
+    },
+    { capture: true },
+  );
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // Camera pan, trackpad two-finger scroll (and mouse wheel). Pinch arrives as ctrl + wheel: no zoom yet,
+  // but it must not zoom the whole page either.
+  canvas.addEventListener(
+    'wheel',
+    (e) => {
+      e.preventDefault();
+      if (e.ctrlKey) return;
+      const d = wheelPan(e, canvas.clientHeight || 600);
+      panCamera(d.x, d.y);
+    },
+    { passive: false },
+  );
+
+  const stopCamera = effect(() => {
+    const c = camera.value;
+    world.style.transform = `translate(${-c.x}px, ${-c.y}px)`;
+    canvas.style.backgroundPosition = `${-c.x}px ${-c.y}px`;
   });
 
   function buildNode(id: string): NodeView {
@@ -388,6 +444,7 @@ export const mountCanvas: MountUi = (root) => {
 
   return () => {
     stop();
+    stopCamera();
     document.removeEventListener('keydown', onKey);
     canvas.remove();
     views.clear();

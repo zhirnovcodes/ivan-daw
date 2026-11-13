@@ -5,7 +5,7 @@ import {
   cableCurve,
   cableMidpoint,
   cablePath,
-  clampToBounds,
+  clampToWorld,
   HEADER_H,
   layoutPorts,
   NODE_W,
@@ -13,6 +13,10 @@ import {
   portAt,
   portCenter,
   ROW_H,
+  toWorld,
+  WHEEL_LINE_PX,
+  WORLD_MIN,
+  wheelPan,
 } from './geometry';
 
 const ports: PortInfo[] = [
@@ -59,7 +63,7 @@ describe('cables', () => {
   });
 });
 
-describe('hit testing and bounds', () => {
+describe('hit testing and camera', () => {
   const spots = [
     { ref: { node: 'a', port: 'in' }, center: { x: 10, y: 10 } },
     { ref: { node: 'b', port: 'in' }, center: { x: 30, y: 10 } },
@@ -68,12 +72,25 @@ describe('hit testing and bounds', () => {
     expect(portAt({ x: 28, y: 12 }, spots)?.ref.node).toBe('b');
     expect(portAt({ x: 100, y: 100 }, spots)).toBeUndefined();
   });
-  it('clamps a drag inside the canvas', () => {
-    const size = { w: 180, h: 100 };
-    const bounds = { w: 800, h: 600 };
-    expect(clampToBounds({ x: -20, y: -5 }, size, bounds)).toEqual({ x: 0, y: 0 });
-    expect(clampToBounds({ x: 900, y: 700 }, size, bounds)).toEqual({ x: 620, y: 500 });
-    expect(clampToBounds({ x: 50, y: 60 }, size, bounds)).toEqual({ x: 50, y: 60 });
-    expect(clampToBounds({ x: 50, y: 60 }, size, { w: 100, h: 50 })).toEqual({ x: 0, y: 0 });
+  it('lets a node go anywhere above the world minimum', () => {
+    expect(clampToWorld({ x: -20, y: 5000 })).toEqual({ x: -20, y: 5000 });
+    expect(clampToWorld({ x: -9000, y: -2500 })).toEqual({ x: WORLD_MIN, y: WORLD_MIN });
+  });
+  it('turns screen points into world points with the camera', () => {
+    expect(toWorld({ x: 10, y: 20 }, { x: 0, y: 0 })).toEqual({ x: 10, y: 20 });
+    expect(toWorld({ x: 10, y: 20 }, { x: 300, y: -50 })).toEqual({ x: 310, y: -30 });
+  });
+  it('a port is hit at the same screen spot after panning', () => {
+    const camera = { x: 250, y: 40 };
+    const shifted = spots.map((s) => ({ ...s, center: toWorld(s.center, camera) }));
+    expect(portAt(toWorld({ x: 28, y: 12 }, camera), shifted)?.ref.node).toBe('b');
+  });
+  it('converts wheel deltas in pixel, line and page mode', () => {
+    expect(wheelPan({ deltaX: 3, deltaY: -7, deltaMode: 0 }, 600)).toEqual({ x: 3, y: -7 });
+    expect(wheelPan({ deltaX: 0, deltaY: 2, deltaMode: 1 }, 600)).toEqual({
+      x: 0,
+      y: 2 * WHEEL_LINE_PX,
+    });
+    expect(wheelPan({ deltaX: 0, deltaY: 1, deltaMode: 2 }, 600)).toEqual({ x: 0, y: 600 });
   });
 });

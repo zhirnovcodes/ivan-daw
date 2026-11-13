@@ -20,6 +20,7 @@ import {
   samePort,
 } from '../model/project';
 import {
+  camera,
   deps,
   type NodeStatus,
   nodeErrors,
@@ -195,6 +196,13 @@ export function pause(): void {
 
 export function stop(): void {
   deps.value.scheduler.stop();
+}
+
+/** Moves the camera by (dx, dy) world px. Positive dx shows what is further right. */
+export function panCamera(dx: number, dy: number): void {
+  if (dx === 0 && dy === 0) return;
+  const c = camera.value;
+  camera.value = { x: c.x + dx, y: c.y + dy };
 }
 
 export function select(sel: Selection): void {
