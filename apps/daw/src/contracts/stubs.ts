@@ -25,6 +25,7 @@ export function createStubEngine(): Engine {
     unlock: () => Promise.resolve(),
     get: () => undefined,
     rms: () => 0,
+    controlParam: () => undefined,
   };
 }
 
@@ -90,7 +91,7 @@ export function createStubRouter(): Router {
   return {
     validate: (_p, _m, from, to) =>
       from.node === to.node ? { ok: false, reason: 'self' } : { ok: true },
-    plan: () => ({ audio: [], events: [] }),
+    plan: () => ({ audio: [], events: [], control: [] }),
     apply: () => {},
   };
 }

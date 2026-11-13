@@ -9,6 +9,9 @@ const FFT_SIZE = 2048;
 export interface Master {
   /** The summing point every cable to Master connects into. */
   readonly input: GainNode;
+  /** Master's output gain (holds 0.8 × the Master node's volume) and pan, for control cables. */
+  readonly gainParam: AudioParam;
+  readonly panParam: AudioParam;
   /** Sets the Master node's volume (0..1.5); the output gain is 0.8 × v. */
   setVolume(v: number): void;
   /** Sets the Master node's pan (−1..1), glided. */
@@ -32,6 +35,8 @@ export function createMaster(ctx: AudioContext): Master {
 
   return {
     input,
+    gainParam: out.gain,
+    panParam: pan.pan,
     setVolume(v) {
       glideTo(out.gain, MASTER_GAIN * v, ctx.currentTime);
     },

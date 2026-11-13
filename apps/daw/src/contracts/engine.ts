@@ -28,4 +28,10 @@ export interface Engine {
   get(id: string): LoadedNode | undefined;
   /** RMS of Master's output from its AnalyserNode, for the test hook. */
   rms(): number;
+  /**
+   * v1.1, for control cables: the AudioParam behind a node's volume or pan (Master's included).
+   * A volume value goes in as `value × scale` (Master's gain carries its fixed 0.8).
+   * Undefined for a node without a strip or not loaded.
+   */
+  controlParam(id: string, which: 'gain' | 'pan'): { param: AudioParam; scale: number } | undefined;
 }

@@ -2,18 +2,53 @@
 
 import type { PortInfo } from 'ivandaw-core';
 import type { ValidateResult } from '../contracts/router';
-import type { ManifestMap } from '../model/catalog';
-import { isSummingInput, type PortRef, type Project, samePort } from '../model/project';
+import { type ManifestMap, mainAudioOut } from '../model/catalog';
+import { parseControlPort } from '../model/control';
+import {
+  isSummingInput,
+  MASTER_PLUGIN,
+  type PortRef,
+  type Project,
+  samePort,
+} from '../model/project';
 
-/** The port a PortRef points at, via its node's plugin manifest. */
-export function findPort(p: Project, manifests: ManifestMap, ref: PortRef): PortInfo | undefined {
+/** A host-made control input (v1.1): a modulation port with direction 'in'. Plugins never declare these. */
+export interface ControlInPort {
+  id: string;
+  label: string;
+  kind: 'modulation';
+  direction: 'in';
+}
+
+/** A port as the router sees it: a manifest port, or a host-made control input. */
+export type HostPort = PortInfo | ControlInPort;
+
+/**
+ * The port a PortRef points at, via its node's plugin manifest.
+ * `ctl:gain` / `ctl:pan` exist on Master and on nodes with a main audio out;
+ * `ctl:param:<id>` exists on every plugin node (which ids are automatable is the picker's job,
+ * and a plugin ignores unknown ids).
+ */
+export function findPort(p: Project, manifests: ManifestMap, ref: PortRef): HostPort | undefined {
   const node = p.nodes.find((n) => n.id === ref.node);
   if (!node) return undefined;
-  return manifests.get(node.plugin)?.ports.find((port) => port.id === ref.port);
+  const manifest = manifests.get(node.plugin);
+  const ctl = parseControlPort(ref.port);
+  if (ctl) {
+    if (!manifest) return undefined;
+    const isMaster = node.plugin === MASTER_PLUGIN;
+    if (ctl.kind === 'param') {
+      if (isMaster) return undefined;
+    } else if (!isMaster && !mainAudioOut(manifest)) {
+      return undefined;
+    }
+    return { id: ref.port, label: ref.port, kind: 'modulation', direction: 'in' };
+  }
+  return manifest?.ports.find((port) => port.id === ref.port);
 }
 
 /** True if a cable from `out` to `inp` may carry anything: same kind, and shared event types for events. */
-export function compatible(out: PortInfo, inp: PortInfo): boolean {
+export function compatible(out: HostPort, inp: HostPort): boolean {
   if (out.kind !== inp.kind) return false;
   if (out.kind === 'events' && inp.kind === 'events') {
     return out.accepts.some((t) => inp.accepts.includes(t));
@@ -39,7 +74,7 @@ function reaches(edges: Map<string, string[]>, start: string, goal: string): boo
  * Checks one proposed cable, rules in order: self, direction, kind, duplicate, cycle.
  * A missing node or port is refused with 'kind'.
  * The cycle check ignores the cable that this one would replace on a taken input,
- * and covers audio and events cables together.
+ * and covers audio, events and control cables together.
  */
 export function validate(
   p: Project,

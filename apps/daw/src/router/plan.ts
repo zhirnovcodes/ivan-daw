@@ -5,7 +5,7 @@ import type { ManifestMap } from '../model/catalog';
 import type { Project } from '../model/project';
 import { compatible, findPort } from './validate';
 
-export const EMPTY_WIRING: Wiring = { audio: [], events: [] };
+export const EMPTY_WIRING: Wiring = { audio: [], events: [], control: [] };
 
 /**
  * Exactly the project's cables whose two nodes are `ready`, split by port kind.
@@ -18,6 +18,7 @@ export function plan(
 ): Wiring {
   const audio: WiringEdge[] = [];
   const events: WiringEdge[] = [];
+  const control: WiringEdge[] = [];
   for (const c of p.cables) {
     if (status[c.from.node] !== 'ready' || status[c.to.node] !== 'ready') continue;
     const out = findPort(p, manifests, c.from);
@@ -34,9 +35,9 @@ export function plan(
     const edge = { id: c.id, from: { ...c.from }, to: { ...c.to } };
     if (out.kind === 'audio') audio.push(edge);
     else if (out.kind === 'events') events.push(edge);
-    // 'modulation' arrives in v1.2.
+    else control.push(edge);
   }
-  return { audio, events };
+  return { audio, events, control };
 }
 
 export interface WiringDiff {
@@ -48,7 +49,10 @@ const key = (e: WiringEdge): string =>
   `${e.id}|${e.from.node}:${e.from.port}>${e.to.node}:${e.to.port}`;
 
 /** What to connect and disconnect to go from `prev` to `next`, per kind. Edges match by id and ends. */
-export function diffWiring(prev: Wiring, next: Wiring): { audio: WiringDiff; events: WiringDiff } {
+export function diffWiring(
+  prev: Wiring,
+  next: Wiring,
+): { audio: WiringDiff; events: WiringDiff; control: WiringDiff } {
   const diff = (a: WiringEdge[], b: WiringEdge[]): WiringDiff => {
     const before = new Set(a.map(key));
     const after = new Set(b.map(key));
@@ -57,13 +61,20 @@ export function diffWiring(prev: Wiring, next: Wiring): { audio: WiringDiff; eve
       disconnect: a.filter((e) => !after.has(key(e))),
     };
   };
-  return { audio: diff(prev.audio, next.audio), events: diff(prev.events, next.events) };
+  return {
+    audio: diff(prev.audio, next.audio),
+    events: diff(prev.events, next.events),
+    control: diff(prev.control, next.control),
+  };
 }
 
-/** The event lookup table `fromNode:fromPort → [{ node, port }]`. */
-export function eventTable(w: Wiring): Map<string, { node: string; port: string }[]> {
+/** The lookup table `fromNode:fromPort → [{ node, port }]` for one edge list (events or control). */
+export function eventTable(
+  w: Wiring,
+  kind: 'events' | 'control' = 'events',
+): Map<string, { node: string; port: string }[]> {
   const table = new Map<string, { node: string; port: string }[]>();
-  for (const e of w.events) {
+  for (const e of w[kind]) {
     const k = `${e.from.node}:${e.from.port}`;
     const list = table.get(k) ?? [];
     list.push({ ...e.to });

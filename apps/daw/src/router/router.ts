@@ -1,12 +1,20 @@
 // P8 router. Tech design: "Router" and "Fades and clicks".
 // validate and plan are pure (validate.ts, plan.ts). apply is the only step that touches Web Audio.
 // Events are forwarded through a lookup table rebuilt whenever the plan changes; the router never re-times them.
+// v1.1 control cables: a modulator's `automation` values go to a host-made `ctl:*` input. Volume and pan
+// glide the strip's AudioParam; `ctl:param:<id>` becomes an `automation` event with source 'binding'.
 
 import { effect } from '@preact/signals-core';
 import { allNotesOff, beatAt, type PluginEvent, type PluginInstance } from 'ivandaw-core';
 import type { Engine } from '../contracts/engine';
 import type { Router, Wiring, WiringEdge } from '../contracts/router';
-import { rampTo } from '../engine/ramp';
+import { glideTo, rampTo } from '../engine/ramp';
+import {
+  type ControlTarget,
+  controlToGain,
+  controlToPan,
+  parseControlPort,
+} from '../model/control';
 import { MASTER_ID } from '../model/project';
 import { deps, nodeStatus, project } from '../store/store';
 import { diffWiring, EMPTY_WIRING, eventTable, plan } from './plan';
@@ -38,18 +46,34 @@ interface AudioLink {
 const linkKey = (e: WiringEdge): string =>
   `${e.id}|${e.from.node}:${e.from.port}>${e.to.node}:${e.to.port}`;
 
+/** Ports whose emitted events the router forwards: events outs and modulation outs. */
 function eventsOutPorts(instance: PluginInstance): string[] {
   const ids: string[] = [];
   for (const [id, h] of instance.ports) {
-    if (h.info.kind === 'events' && h.info.direction === 'out') ids.push(id);
+    if ((h.info.kind === 'events' || h.info.kind === 'modulation') && h.info.direction === 'out') {
+      ids.push(id);
+    }
   }
   return ids;
+}
+
+/** A parameter's value to fall back to when its control cable goes: what the user set, else its default. */
+function restingParam(
+  instance: PluginInstance,
+  stored: number | undefined,
+  id: string,
+): number | undefined {
+  if (stored !== undefined) return stored;
+  const p = instance.parameters().find((x) => x.id === id);
+  if (!p) return undefined;
+  return p.max === p.min ? 0 : (p.default - p.min) / (p.max - p.min);
 }
 
 export function createRouter(opts: RouterOptions): LiveRouter {
   const { engine } = opts;
   let current: Wiring = EMPTY_WIRING;
   let table = eventTable(current);
+  let controlTable = eventTable(current, 'control');
   const links = new Map<string, AudioLink>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
   /** Node id → its event listener subscription (re-made if the instance changes). */
@@ -127,6 +151,54 @@ export function createRouter(opts: RouterOptions): LiveRouter {
     timers.add(timer);
   }
 
+  /** Drives one control input with a control value (0..1) at `time`. */
+  function drive(
+    node: string,
+    target: ControlTarget,
+    value: number,
+    time: number,
+    source: 'binding' | 'host',
+  ): void {
+    if (target.kind === 'param') {
+      send(node, [{ type: 'automation', time, id: target.id, value, source }]);
+      return;
+    }
+    const cp = engine.controlParam(node, target.kind);
+    if (!cp) return;
+    const v = target.kind === 'gain' ? controlToGain(value) * cp.scale : controlToPan(value);
+    glideTo(cp.param, v, Math.max(time, engine.context.currentTime));
+  }
+
+  /** A control cable went: the input returns to the value it has without one. */
+  function release(to: { node: string; port: string }): void {
+    const target = parseControlPort(to.port);
+    const node = project.peek().nodes.find((n) => n.id === to.node);
+    if (!target || !node) return;
+    const now = engine.context.currentTime;
+    if (target.kind === 'gain' || target.kind === 'pan') {
+      const cp = engine.controlParam(to.node, target.kind);
+      if (cp) glideTo(cp.param, target.kind === 'gain' ? node.gain * cp.scale : node.pan, now);
+      return;
+    }
+    const inst = engine.get(to.node)?.instance;
+    const v = inst ? restingParam(inst, node.params[target.id], target.id) : undefined;
+    if (v !== undefined) drive(to.node, target, v, now, 'host');
+  }
+
+  /** A new control cable: the input jumps to the source's current value when the source can tell. */
+  function prime(e: WiringEdge): void {
+    const target = parseControlPort(e.to.port);
+    const src = engine.get(e.from.node)?.instance;
+    if (!target || !src) return;
+    let value: number | undefined;
+    try {
+      if (src.parameters().some((p) => p.id === e.from.port)) value = src.parameter(e.from.port);
+    } catch (err) {
+      report(e.from.node, 'parameter', err);
+    }
+    if (value !== undefined) drive(e.to.node, target, value, engine.context.currentTime, 'binding');
+  }
+
   function apply(prev: Wiring, next: Wiring): void {
     const d = diffWiring(prev, next);
     // Disconnect first, then connect: a replaced cable crossfades over the same 10 ms.
@@ -137,14 +209,21 @@ export function createRouter(opts: RouterOptions): LiveRouter {
       send(e.to.node, [{ type: 'midi', time: engine.context.currentTime, bytes: allNotesOff() }]);
     }
     table = eventTable(next);
+    controlTable = eventTable(next, 'control');
+    for (const e of d.control.disconnect) release(e.to);
+    for (const e of d.control.connect) prime(e);
   }
 
   /** Passes an event a node emitted along its cables, unchanged except for the target port. */
   function forward(from: string, defaultPort: string | undefined, e: PluginEvent): void {
     const port = e.port ?? defaultPort;
-    const targets = table.get(`${from}:${port}`);
-    if (!targets) return;
-    for (const t of targets) send(t.node, [{ ...e, port: t.port }]);
+    const key = `${from}:${port}`;
+    for (const t of table.get(key) ?? []) send(t.node, [{ ...e, port: t.port }]);
+    if (e.type !== 'automation') return;
+    for (const t of controlTable.get(key) ?? []) {
+      const target = parseControlPort(t.port);
+      if (target) drive(t.node, target, e.value, e.time, 'binding');
+    }
   }
 
   /** Transport, tempo and CC 123 from the scheduler go to every ready node, no cable needed. */
@@ -229,6 +308,7 @@ export function createRouter(opts: RouterOptions): LiveRouter {
         links.clear();
         current = EMPTY_WIRING;
         table = eventTable(current);
+        controlTable = eventTable(current, 'control');
         ready = new Set();
       };
     },

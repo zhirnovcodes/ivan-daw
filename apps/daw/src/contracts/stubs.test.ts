@@ -67,6 +67,6 @@ describe('stub router', () => {
     expect(r.validate(p, m, { node: 'n1', port: 'out' }, { node: 'n2', port: 'in' })).toEqual({
       ok: true,
     });
-    expect(r.plan(p, m, {})).toEqual({ audio: [], events: [] });
+    expect(r.plan(p, m, {})).toEqual({ audio: [], events: [], control: [] });
   });
 });

@@ -8,6 +8,7 @@ const GEN = 'gen';
 const SYNTH = 'synth';
 const FX = 'fx';
 const AUTO = 'auto-only';
+const LFO = 'lfo';
 const catalog: CatalogEntry[] = [
   {
     id: GEN,
@@ -45,6 +46,13 @@ const catalog: CatalogEntry[] = [
     kind: 'utility',
     url: '',
     ports: [{ id: 'in', label: 'in', kind: 'events', direction: 'in', accepts: ['automation'] }],
+  },
+  {
+    id: LFO,
+    name: 'LFO',
+    kind: 'modulator',
+    url: '',
+    ports: [{ id: 'out', label: 'out', kind: 'modulation', direction: 'out' }],
   },
 ];
 const manifests = manifestsFrom({ plugins: catalog });
@@ -162,11 +170,77 @@ describe('plan', () => {
     expect(diffWiring(before, after)).toEqual({
       audio: { connect: [after.audio[1]], disconnect: [] },
       events: { connect: [], disconnect: [before.events[0]] },
+      control: { connect: [], disconnect: [] },
     });
     expect(eventTable(before).get('g1:out')).toEqual([{ node: 's1', port: 'in' }]);
     expect(diffWiring(EMPTY_WIRING, EMPTY_WIRING)).toEqual({
       audio: { connect: [], disconnect: [] },
       events: { connect: [], disconnect: [] },
+      control: { connect: [], disconnect: [] },
     });
+  });
+});
+
+describe('control inputs (v1.1)', () => {
+  const p = (cables: [string, string, string, string][] = []): Project =>
+    parseProject({
+      ...emptyProject(),
+      nodes: [
+        { id: 'l1', plugin: LFO, x: 0, y: 0 },
+        { id: 'l2', plugin: LFO, x: 0, y: 0 },
+        { id: 'g1', plugin: GEN, x: 0, y: 0 },
+        { id: 's1', plugin: SYNTH, x: 0, y: 0 },
+        ...emptyProject().nodes,
+      ],
+      cables: cables.map(([a, b, c, d], i) => ({
+        id: `c${i + 1}`,
+        from: { node: a, port: b },
+        to: { node: c, port: d },
+      })),
+    });
+  const v = (pr: Project, a: string, b: string, c: string, d: string) =>
+    validate(pr, manifests, { node: a, port: b }, { node: c, port: d });
+
+  it('accepts modulation into ctl:gain, ctl:pan and ctl:param:<id>', () => {
+    expect(v(p(), 'l1', 'out', 's1', 'ctl:gain')).toEqual({ ok: true });
+    expect(v(p(), 'l1', 'out', 's1', 'ctl:pan')).toEqual({ ok: true });
+    expect(v(p(), 'l1', 'out', 's1', 'ctl:param:level')).toEqual({ ok: true });
+    expect(v(p(), 'l1', 'out', 'master', 'ctl:gain')).toEqual({ ok: true });
+    expect(v(p(), 'l1', 'out', 'g1', 'ctl:param:rate')).toEqual({ ok: true });
+  });
+
+  it('has no volume / pan inputs on a node without audio out, and no parameters on Master', () => {
+    expect(v(p(), 'l1', 'out', 'g1', 'ctl:gain')).toEqual({ ok: false, reason: 'kind' });
+    expect(v(p(), 'l1', 'out', 'master', 'ctl:param:x')).toEqual({ ok: false, reason: 'kind' });
+    expect(v(p(), 'l1', 'out', 's1', 'ctl:bogus')).toEqual({ ok: false, reason: 'kind' });
+  });
+
+  it('refuses notes or audio into a control input, and control into notes', () => {
+    expect(v(p(), 'g1', 'out', 's1', 'ctl:gain')).toEqual({ ok: false, reason: 'kind' });
+    expect(v(p(), 's1', 'out', 'l2', 'ctl:param:x')).toEqual({ ok: false, reason: 'kind' });
+    expect(v(p(), 'l1', 'out', 's1', 'in')).toEqual({ ok: false, reason: 'kind' });
+  });
+
+  it('refuses a control input as a source, duplicates and loops', () => {
+    expect(v(p(), 's1', 'ctl:gain', 'l1', 'ctl:param:x')).toEqual({
+      ok: false,
+      reason: 'direction',
+    });
+    const one = p([['l1', 'out', 's1', 'ctl:gain']]);
+    expect(v(one, 'l1', 'out', 's1', 'ctl:gain')).toEqual({ ok: false, reason: 'duplicate' });
+    const loop = p([['l1', 'out', 'l2', 'ctl:param:rate']]);
+    expect(v(loop, 'l2', 'out', 'l1', 'ctl:param:rate')).toEqual({ ok: false, reason: 'cycle' });
+  });
+
+  it('plans control cables in their own list, with their own lookup table', () => {
+    const pr = p([
+      ['l1', 'out', 's1', 'ctl:pan'],
+      ['s1', 'out', 'master', 'in'],
+    ]);
+    const w = plan(pr, manifests, { l1: 'ready', s1: 'ready', master: 'ready' });
+    expect(w.control.map((e) => e.id)).toEqual(['c1']);
+    expect(w.audio.map((e) => e.id)).toEqual(['c2']);
+    expect(eventTable(w, 'control').get('l1:out')).toEqual([{ node: 's1', port: 'ctl:pan' }]);
+    expect(eventTable(w).get('l1:out')).toBeUndefined();
   });
 });

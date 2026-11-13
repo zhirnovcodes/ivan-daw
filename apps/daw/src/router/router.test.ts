@@ -17,6 +17,8 @@ import { CABLE_DISCONNECT_MS, createRouter, type LiveRouter } from './router';
 
 const GEN = 'gen';
 const SYNTH = 'synth';
+const MOD = 'mod';
+const modOut: PortInfo = { id: 'out', label: 'out', kind: 'modulation', direction: 'out' };
 const evOut: PortInfo & { kind: 'events' } = {
   id: 'out',
   label: 'out',
@@ -42,6 +44,7 @@ const audioOut: PortInfo & { kind: 'audio' } = {
 const catalog: CatalogEntry[] = [
   { id: GEN, name: 'Gen', kind: 'midi', url: '', ports: [evOut] },
   { id: SYNTH, name: 'Synth', kind: 'instrument', url: '', ports: [evIn, audioOut] },
+  { id: MOD, name: 'Mod', kind: 'modulator', url: '', ports: [modOut] },
 ];
 
 interface Fake extends PluginInstance {
@@ -62,6 +65,7 @@ function fakeInstance(plugin: string): Fake {
   const listeners = new Set<(e: PluginEvent) => void>();
   const ports = new Map<string, PortHandle>();
   if (plugin === GEN) ports.set('out', { info: evOut });
+  else if (plugin === MOD) ports.set('out', { info: modOut as PortInfo & { kind: 'modulation' } });
   else {
     ports.set('in', { info: evIn });
     ports.set('out', { info: audioOut, node: ctx.createGain() as unknown as AudioNode, index: 0 });
@@ -75,8 +79,33 @@ function fakeInstance(plugin: string): Fake {
     ports,
     latency: 0,
     tail: 0,
-    parameters: () => [],
-    parameter: () => 0,
+    parameters: () =>
+      plugin === SYNTH
+        ? [
+            {
+              id: 'level',
+              label: 'Level',
+              kind: 'float',
+              min: 0,
+              max: 1,
+              default: 0.5,
+              automatable: true,
+            },
+          ]
+        : plugin === MOD
+          ? [
+              {
+                id: 'out',
+                label: 'Out',
+                kind: 'float',
+                min: 0,
+                max: 1,
+                default: 0.5,
+                automatable: true,
+              },
+            ]
+          : [],
+    parameter: (id) => (plugin === MOD && id === 'out' ? 0.25 : 0),
     schedule(events) {
       if (inst.throws) throw new Error('kaboom');
       inst.got.push(...events);
@@ -140,6 +169,7 @@ beforeEach(() => {
         { id: 'n1', plugin: GEN, x: 0, y: 0 },
         { id: 'n2', plugin: SYNTH, x: 0, y: 0 },
         { id: 'n3', plugin: SYNTH, x: 0, y: 0 },
+        { id: 'm1', plugin: MOD, x: 0, y: 0 },
         { id: 'master', plugin: 'builtin.master', x: 0, y: 0 },
       ],
       cables: [
@@ -154,6 +184,11 @@ beforeEach(() => {
     unlock: async () => {},
     get: (id) => loaded.get(id),
     rms: () => 0,
+    controlParam: (id, which) => {
+      const s = loaded.get(id)?.strip;
+      if (!s) return undefined;
+      return { param: which === 'gain' ? s.input.gain : s.output.pan, scale: 1 };
+    },
   };
   router = createRouter({ engine, onNotify: (node, msg) => notices.push(`${node}: ${msg}`) });
   provide({ router });
@@ -301,3 +336,69 @@ describe('detach', () => {
 
 // Keep FakeParam in the import list used for type clarity in assertions above.
 export type { FakeParam };
+
+describe('control cables (v1.1)', () => {
+  const autos = (f: Fake) => f.got.filter((e) => e.type === 'automation');
+
+  it('turns modulator values into binding automation on ctl:param:<id>', () => {
+    const synth = ready('n2');
+    const mod = ready('m1');
+    const r = connect({ node: 'm1', port: 'out' }, { node: 'n2', port: 'ctl:param:level' });
+    expect(r.ok).toBe(true);
+    expect(router.wiring.control.map((e) => e.to.port)).toEqual(['ctl:param:level']);
+    // On connect the target jumps to the source's current value.
+    expect(autos(synth)).toEqual([
+      { type: 'automation', time: 0, id: 'level', value: 0.25, source: 'binding' },
+    ]);
+    mod.emit({ type: 'automation', time: 1.5, id: 'out', value: 0.9 });
+    expect(autos(synth).at(-1)).toEqual({
+      type: 'automation',
+      time: 1.5,
+      id: 'level',
+      value: 0.9,
+      source: 'binding',
+    });
+  });
+
+  it('glides the strip volume (0..1 → 0..1.5) and pan (0..1 → −1..1)', () => {
+    ready('n2');
+    const mod = ready('m1');
+    connect({ node: 'm1', port: 'out' }, { node: 'n2', port: 'ctl:gain' });
+    connect({ node: 'm1', port: 'out' }, { node: 'n3', port: 'ctl:pan' });
+    ready('n3');
+    const gain = loaded.get('n2')?.strip?.input.gain as unknown as FakeParam;
+    const pan = loaded.get('n3')?.strip?.output.pan as unknown as FakeParam;
+    ctx.currentTime = 2;
+    mod.emit({ type: 'automation', time: 2.025, id: 'out', value: 1 });
+    expect(gain.target).toBeCloseTo(1.5, 9);
+    expect(pan.target).toBeCloseTo(1, 9);
+    expect(gain.calls.at(-1)).toEqual(['setTargetAtTime', 1.5, 2.025, 0.01]);
+    mod.emit({ type: 'automation', time: 2.05, id: 'out', value: 0 });
+    expect(pan.target).toBeCloseTo(-1, 9);
+  });
+
+  it('removing the cable restores the stored value, or the default', () => {
+    const synth = ready('n2');
+    ready('m1');
+    const r = connect({ node: 'm1', port: 'out' }, { node: 'n2', port: 'ctl:param:level' });
+    const gainCable = connect({ node: 'm1', port: 'out' }, { node: 'n2', port: 'ctl:gain' });
+    if (!r.ok || !gainCable.ok) throw new Error('connect');
+    disconnect(r.id);
+    expect(autos(synth).at(-1)).toMatchObject({ id: 'level', value: 0.5, source: 'host' });
+    disconnect(gainCable.id);
+    const gain = loaded.get('n2')?.strip?.input.gain as unknown as FakeParam;
+    expect(gain.target).toBeCloseTo(1, 9);
+  });
+
+  it('does not send modulator values along notes cables, or notes along control cables', () => {
+    const synth = ready('n2');
+    const gen = ready('n1');
+    const mod = ready('m1');
+    connect({ node: 'm1', port: 'out' }, { node: 'n2', port: 'ctl:param:level' });
+    const before = synth.got.length;
+    gen.emit({ type: 'midi', time: 1, bytes: [0x90, 60, 100] });
+    expect(synth.got.length).toBe(before + 1); // the c1 notes cable only
+    mod.emit({ type: 'midi', time: 1, bytes: [0x90, 60, 100] });
+    expect(synth.got.length).toBe(before + 1);
+  });
+});

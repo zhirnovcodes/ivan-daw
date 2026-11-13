@@ -19,7 +19,7 @@ import type { Catalog, CatalogEntry } from '../model/catalog';
 import { type GraphNode, MASTER_ID } from '../model/project';
 import { setNodeStatus } from '../store/actions';
 import { deps, project } from '../store/store';
-import { createMaster } from './master';
+import { createMaster, MASTER_GAIN } from './master';
 import { REMOVE_DISPOSE_MS } from './ramp';
 import { createStrip, type LiveStrip } from './strip';
 
@@ -252,6 +252,18 @@ export function createEngine(opts: EngineOptions): LiveEngine {
     },
     get: (id) => live.get(id),
     rms: () => master.rms(),
+    controlParam(id, which) {
+      if (id === MASTER_ID) {
+        return which === 'gain'
+          ? { param: master.gainParam, scale: MASTER_GAIN }
+          : { param: master.panParam, scale: 1 };
+      }
+      const s = live.get(id)?.strip;
+      if (!s) return undefined;
+      return which === 'gain'
+        ? { param: s.input.gain, scale: 1 }
+        : { param: s.output.pan, scale: 1 };
+    },
     attach() {
       setNodeStatus(MASTER_ID, 'ready');
       return effect(() => {

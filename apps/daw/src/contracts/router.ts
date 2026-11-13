@@ -25,13 +25,16 @@ export type WiringEdge = Pick<Cable, 'id' | 'from' | 'to'>;
 export interface Wiring {
   audio: WiringEdge[];
   events: WiringEdge[];
+  /** v1.1: modulation out → a host-made `ctl:*` input. */
+  control: WiringEdge[];
 }
 
 export interface Router {
   /**
    * Pure. Checks one proposed cable against the cable rules:
    * 1 self, 2 direction, 3 kind (events: out port's `accepts` and in port's `accepts` share a type),
-   * 4 duplicate, 5 cycle in the combined audio + events graph.
+   * 4 duplicate, 5 cycle in the combined audio + events + control graph.
+   * v1.1: `ctl:gain`, `ctl:pan`, `ctl:param:<id>` are host-made modulation inputs.
    * A cable onto a taken input is valid: the store replaces the old cable (Master `in` sums instead).
    * `manifests` is keyed by plugin id and includes `builtin.master`.
    * A node or port missing from the project or the manifests is refused with 'kind'.
