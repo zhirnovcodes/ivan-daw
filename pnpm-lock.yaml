@@ -59,6 +59,16 @@ importers:
         specifier: ^8.3.8
         version: 8.3.8
 
+  plugins/note-hold:
+    dependencies:
+      ivandaw-core:
+        specifier: github:zhirnovcodes/ivan-daw-core#v0.2.0
+        version: https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/d8d2a3b126cb6c99e3463d5e9ad963393ea93823
+    devDependencies:
+      vite:
+        specifier: ^8.3.8
+        version: 8.3.8
+
 packages:
 
   '@biomejs/biome@2.6.7':
