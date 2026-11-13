@@ -1,0 +1,20 @@
+{
+  "name": "@ivandaw/lfo",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "ivandaw": {
+    "id": "com.ivandaw.lfo"
+  },
+  "scripts": {
+    "build": "vite build",
+    "build:watch": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ivandaw-core": "github:zhirnovcodes/ivan-daw-core#v0.2.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8"
+  }
+}
