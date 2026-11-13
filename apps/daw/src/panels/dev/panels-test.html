@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panels test</title>
+    <style>
+      html, body { margin: 0; height: 100%; font: 13px system-ui, sans-serif; color: #000; background: #fff; }
+      #layout { display: grid; grid-template-rows: 48px 1fr; height: 100%; }
+      #main { display: grid; grid-template-columns: 1fr 260px; min-height: 0; }
+      #left { padding: 12px; overflow: auto; }
+      #left h3 { margin: 12px 0 4px; font-size: 13px; }
+      #left h3:first-child { margin-top: 0; }
+      pre { margin: 0; padding: 8px; border: 1px solid #000; border-radius: 4px; font: 12px ui-monospace, monospace; white-space: pre-wrap; min-height: 1.5em; }
+      #center { margin-bottom: 8px; color: #444; }
+    </style>
+  </head>
+  <body>
+    <div id="layout">
+      <div id="bar"></div>
+      <div id="main">
+        <div id="left">
+          <div id="center"></div>
+          <h3>Selection</h3><pre id="sel"></pre>
+          <h3>project.nodes (click one to select it)</h3><pre id="nodes" style="padding:4px"></pre>
+          <h3>project.cables</h3><pre id="cables"></pre>
+          <h3>Transport</h3><pre id="transport"></pre>
+          <h3>Automation events the fake instance received</h3><pre id="log"></pre>
+        </div>
+        <div id="side"></div>
+      </div>
+    </div>
+    <div id="menu"></div>
+    <script type="module" src="./panels-test.ts"></script>
+  </body>
+</html>
