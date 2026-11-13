@@ -1,0 +1,10 @@
+{
+  "name": "@ivandaw/beatality",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Beatality, prebuilt by Beatality's CI. dist/ is downloaded by scripts/fetch-beatality.mjs, never built here.",
+  "ivandaw": {
+    "id": "com.beatality.beatality",
+    "release": "daw-build-2"
+  }
+}

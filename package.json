@@ -7,7 +7,9 @@
   },
   "packageManager": "pnpm@10.34.9",
   "scripts": {
-    "dev": "pnpm --filter ivandaw dev",
+    "postinstall": "node scripts/fetch-beatality.mjs",
+    "dev": "node scripts/fetch-beatality.mjs && pnpm --filter ivandaw dev",
+    "beatality:update": "node scripts/fetch-beatality.mjs --update",
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "biome check .",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.7",
+    "fflate": "0.8.2",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   }
