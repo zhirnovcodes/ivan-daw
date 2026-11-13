@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Router test</title>
+    <style>
+      html, body { margin: 0; height: 100%; font: 14px system-ui, sans-serif; }
+      #bar { height: 48px; display: flex; gap: 8px; align-items: center; padding: 0 12px; border-bottom: 1px solid #ccc; }
+      button { font: inherit; padding: 4px 10px; }
+      #root { position: absolute; top: 49px; left: 0; right: 0; bottom: 0; }
+      code { background: #eee; padding: 0 4px; }
+    </style>
+  </head>
+  <body>
+    <div id="bar">
+      <strong>Router test (P8)</strong>
+      <button id="hold">Hold chord on synth A</button>
+      <button id="release">Release</button>
+      <button id="hold2">Hold note on synth B</button>
+      <span>Wiring: <code id="wiring">–</code></span>
+      <span>RMS <code id="rms">0</code></span>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="./router-test.ts"></script>
+  </body>
+</html>
