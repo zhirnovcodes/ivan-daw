@@ -15,11 +15,22 @@ import {
   moveNode,
   panCamera,
   removeNode,
+  resetZoom,
   select,
   setGain,
   setPan,
+  setUiHidden,
   setUiSlot,
+  zoomAt,
 } from '../store/actions';
+import {
+  boundsOf,
+  type Camera,
+  clampCamera,
+  KEY_STEP,
+  type Rect,
+  wheelZoom,
+} from '../store/camera';
 import { camera, deps, mode, nodeErrors, nodeStatus, project, selection } from '../store/store';
 import { CTL_SPOT, controlChoices, spotOf } from './controls';
 import {
@@ -30,6 +41,7 @@ import {
   NODE_W,
   nodeSize,
   nodeWidth,
+  PORT_HIT_R,
   type PortLayout,
   type PortSpot,
   type Pt,
@@ -56,6 +68,8 @@ import { CANVAS_CSS } from './styles';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const TOAST_MS = 2000;
+/** Grid dot spacing at 100%, as in styles.ts. */
+const GRID_PX = 24;
 
 let styleEl: HTMLStyleElement | undefined;
 function ensureStyles(): void {
@@ -117,8 +131,10 @@ interface NodeView {
   portEls: Map<string, HTMLElement>;
   /** Box width: 180, or wider for a plugin UI. */
   w: number;
-  /** The plugin UI's size and the element it is mounted into, when the manifest has `ui`. */
-  ui?: { box: UiBox; slot: HTMLElement };
+  /** The plugin UI's size, the element it is mounted into and the `-` / `+` button, when the manifest has `ui`. */
+  ui?: { box: UiBox; slot: HTMLElement; fold: HTMLButtonElement };
+  /** The plugin UI is folded away (v1.1.2): the box is laid out without it. */
+  uiHidden: boolean;
   /** Volume and pan on the box, for nodes with a main audio out and for Master. */
   footer?: { el: HTMLElement; vol: HTMLInputElement; pan: HTMLInputElement };
 }
@@ -138,7 +154,10 @@ export const mountCanvas: MountUi = (root) => {
   const nodeLayer = h('div', 'ivd-nodes');
   const world = h('div', 'ivd-world');
   world.append(svg, nodeLayer);
-  canvas.append(world);
+  const zoomLabel = h('button', 'ivd-zoom', '100%');
+  zoomLabel.type = 'button';
+  zoomLabel.title = 'Zoom. Click for 100%';
+  canvas.append(world, zoomLabel);
   root.appendChild(canvas);
 
   const views = new Map<string, NodeView>();
@@ -182,12 +201,27 @@ export const mountCanvas: MountUi = (root) => {
     return spots;
   };
 
-  const ctx = (): GestureCtx => ({
-    sizeOf: (id) => {
-      const v = views.get(id);
-      return nodeSize(v?.layout ?? [], v?.footer !== undefined, v?.ui?.box);
-    },
-  });
+  /** A node's box size as laid out now: without the plugin UI while it is folded away. */
+  const sizeOf = (v: NodeView | undefined) =>
+    nodeSize(v?.layout ?? [], v?.footer !== undefined, v?.uiHidden ? undefined : v?.ui?.box);
+
+  const ctx = (): GestureCtx => ({ sizeOf: (id) => sizeOf(views.get(id)) });
+
+  /** Port hit radius in world px: never under PORT_HIT_R screen px when zoomed out. */
+  const hitR = (): number => PORT_HIT_R / Math.min(1, camera.peek().z);
+
+  /** The pan limit (v1.1.2): the view centre stays inside the box around all nodes. */
+  const fit = (next: Camera, prev: Camera): Camera => {
+    const boxes: Rect[] = [];
+    for (const n of project.peek().nodes) {
+      const sz = sizeOf(views.get(n.id));
+      boxes.push({ left: n.x, top: n.y, right: n.x + sz.w, bottom: n.y + sz.h });
+    }
+    const view = { w: canvas.clientWidth, h: canvas.clientHeight };
+    if (view.w === 0 || view.h === 0) return next;
+    return clampCamera(next, prev, view, boundsOf(boxes));
+  };
+  const viewCenter = (): Pt => ({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
 
   const isControlCable = (id: string): boolean =>
     project.peek().cables.some((c) => c.id === id && isControlPort(c.to.port));
@@ -314,7 +348,7 @@ export const mountCanvas: MountUi = (root) => {
       tempPath.style.display = 'none';
       return;
     }
-    const over = portAt(state.at, inputSpots());
+    const over = portAt(state.at, inputSpots(), hitR());
     const end = over && validity.get(`${over.ref.node}:${over.ref.port}`) ? over.center : state.at;
     tempPath.setAttribute('d', cablePath(from, end));
     const kind = views.get(ref.node)?.layout.find((p) => p.id === ref.port)?.kind;
@@ -340,7 +374,7 @@ export const mountCanvas: MountUi = (root) => {
       end(u);
       const at = rel(u);
       lastUp = screenPt(u);
-      const hit = portAt(at, inputSpots());
+      const hit = portAt(at, inputSpots(), hitR());
       dispatch({ type: 'up', at, ...(hit ? { drop: hit.ref } : {}) });
     };
     const cancel = (u: PointerEvent): void => {
@@ -386,7 +420,8 @@ export const mountCanvas: MountUi = (root) => {
       canvas.classList.add('panning');
       const move = (m: PointerEvent): void => {
         const p = screenPt(m);
-        panCamera(last.x - p.x, last.y - p.y);
+        const z = camera.peek().z;
+        panCamera((last.x - p.x) / z, (last.y - p.y) / z, fit);
         last = p;
       };
       const end = (): void => {
@@ -403,25 +438,36 @@ export const mountCanvas: MountUi = (root) => {
   );
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // Camera pan, trackpad two-finger scroll (and mouse wheel). Pinch arrives as ctrl + wheel: no zoom yet,
-  // but it must not zoom the whole page either.
+  // Two-finger scroll and mouse wheel pan. Ctrl + wheel and trackpad pinch (the browser sends pinch as
+  // ctrl + wheel) zoom around the pointer, over plugin UIs too, and never zoom the whole page.
   canvas.addEventListener(
     'wheel',
     (e) => {
+      const pageH = canvas.clientHeight || 600;
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        zoomAt(screenPt(e), wheelZoom(e.deltaY, e.deltaMode, pageH), fit);
+        return;
+      }
       // Over a plugin's own UI the wheel is the plugin's (its knobs, its lists).
       if (e.target instanceof Element && e.target.closest('.ivd-ui')) return;
       e.preventDefault();
-      if (e.ctrlKey) return;
-      const d = wheelPan(e, canvas.clientHeight || 600);
-      panCamera(d.x, d.y);
+      const d = wheelPan(e, pageH);
+      const z = camera.peek().z;
+      panCamera(d.x / z, d.y / z, fit);
     },
     { passive: false },
   );
 
+  zoomLabel.addEventListener('pointerdown', (e) => e.stopPropagation());
+  zoomLabel.addEventListener('click', () => resetZoom(viewCenter(), fit));
+
   const stopCamera = effect(() => {
     const c = camera.value;
-    world.style.transform = `translate(${-c.x}px, ${-c.y}px)`;
-    canvas.style.backgroundPosition = `${-c.x}px ${-c.y}px`;
+    world.style.transform = `translate(${-c.x * c.z}px, ${-c.y * c.z}px) scale(${c.z})`;
+    canvas.style.backgroundPosition = `${-c.x * c.z}px ${-c.y * c.z}px`;
+    canvas.style.backgroundSize = `${GRID_PX * c.z}px ${GRID_PX * c.z}px`;
+    zoomLabel.textContent = `${Math.round(c.z * 100)}%`;
   });
 
   function buildNode(id: string): NodeView {
@@ -446,6 +492,7 @@ export const mountCanvas: MountUi = (root) => {
       layout: [],
       portEls: new Map(),
       w: NODE_W,
+      uiHidden: false,
     };
   }
 
@@ -481,6 +528,7 @@ export const mountCanvas: MountUi = (root) => {
   /** The slot a plugin's own UI is mounted into (by the app shell), under the port rows. */
   function buildUi(id: string, v: NodeView): void {
     v.ui?.slot.remove();
+    v.ui?.fold.remove();
     v.ui = undefined;
     const box = v.manifest?.ui;
     v.w = nodeWidth(box);
@@ -500,7 +548,16 @@ export const mountCanvas: MountUi = (root) => {
       if (selection.peek().node !== id) select({ node: id });
     });
     v.el.appendChild(slot);
-    v.ui = { box, slot };
+    // `-` folds the plugin UI away, `+` brings it back. A view change, not a sound one: play-only too.
+    const fold = h('button', 'ivd-fold', '−');
+    fold.type = 'button';
+    fold.addEventListener('pointerdown', (e) => e.stopPropagation());
+    fold.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setUiHidden(id, !v.uiHidden);
+    });
+    v.dot.before(fold);
+    v.ui = { box, slot, fold };
     setUiSlot(id, slot);
   }
 
@@ -598,8 +655,16 @@ export const mountCanvas: MountUi = (root) => {
         buildFooter(n.id, v);
         v.title.textContent = manifest?.name ?? n.plugin;
       }
+      v.uiHidden = v.ui !== undefined && n.uiHidden === true;
+      if (v.ui) {
+        v.ui.slot.style.display = v.uiHidden ? 'none' : '';
+        v.ui.fold.textContent = v.uiHidden ? '+' : '−';
+        v.ui.fold.title = v.uiHidden ? 'Show plugin' : 'Hide plugin';
+        v.ui.fold.setAttribute('aria-label', v.ui.fold.title);
+      }
+      v.w = nodeWidth(v.uiHidden ? undefined : v.ui?.box);
       v.el.style.transform = `translate(${n.x}px, ${n.y}px)`;
-      const size = nodeSize(v.layout, v.footer !== undefined, v.ui?.box);
+      const size = sizeOf(v);
       v.el.style.width = `${size.w}px`;
       v.el.style.height = `${size.h}px`;
       if (v.footer) {
@@ -631,6 +696,20 @@ export const mountCanvas: MountUi = (root) => {
 
   const onKey = (e: KeyboardEvent): void => {
     if (e.key === 'Escape') closePicker();
+    // Ctrl/Cmd + / - / 0 zoom the canvas around the view centre, not the browser page.
+    if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+      const step = e.key === '=' || e.key === '+' ? KEY_STEP : e.key === '-' ? -KEY_STEP : 0;
+      if (step !== 0) {
+        e.preventDefault();
+        zoomAt(viewCenter(), step, fit);
+        return;
+      }
+      if (e.key === '0') {
+        e.preventDefault();
+        resetZoom(viewCenter(), fit);
+        return;
+      }
+    }
     const t = e.target;
     if (
       t instanceof HTMLElement &&

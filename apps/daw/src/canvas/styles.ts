@@ -54,6 +54,13 @@ export const CANVAS_CSS = `
 .ivd-picker button:hover, .ivd-picker button:focus { background: #3b3e48; outline: none; }
 .ivd-picker-group { font-size: 11px; color: #8a8d96; padding: 6px 8px 2px; text-transform: uppercase; }
 .ivd-foot-row input:disabled { opacity: 0.4; }
+.ivd-fold { flex: none; width: 18px; height: 18px; padding: 0; border: 1px solid #5a5d66; border-radius: 4px;
+  background: #2b2d34; color: #e6e6ea; font: 600 13px/1 system-ui, sans-serif; cursor: pointer; }
+.ivd-fold:hover { background: #3b3e48; border-color: #8ab4f8; }
+.ivd-zoom { position: absolute; right: 10px; bottom: 10px; z-index: 10; min-width: 48px; padding: 3px 8px;
+  background: #2b2d34; color: #c4c6cc; border: 1px solid #44474f; border-radius: 4px;
+  font: 12px system-ui, sans-serif; cursor: pointer; }
+.ivd-zoom:hover { color: #e6e6ea; border-color: #8ab4f8; }
 .ivd-toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); background: #3b2a2a; color: #ffd7d7;
   border: 1px solid #ef5350; border-radius: 6px; padding: 8px 14px; font: 13px system-ui, sans-serif; z-index: 1000; pointer-events: none; }
 `;

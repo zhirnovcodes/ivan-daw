@@ -14,13 +14,16 @@ import {
   pause,
   play,
   removeNode,
+  resetZoom,
   select,
   setBpm,
   setGain,
   setNodeStatus,
   setPan,
   setParam,
+  setUiHidden,
   stop,
+  zoomAt,
 } from './actions';
 import {
   camera,
@@ -356,17 +359,67 @@ describe('select / setNodeStatus', () => {
 
 describe('panCamera', () => {
   it('moves the camera and leaves the project alone', () => {
-    camera.value = { x: 0, y: 0 };
+    camera.value = { x: 0, y: 0, z: 1 };
     const before = project.value;
     panCamera(30, -12);
     panCamera(-5, 2);
-    expect(camera.value).toEqual({ x: 25, y: -10 });
+    expect(camera.value).toEqual({ x: 25, y: -10, z: 1 });
     expect(project.value).toBe(before);
   });
   it('does not notify for a zero move', () => {
-    camera.value = { x: 4, y: 4 };
+    camera.value = { x: 4, y: 4, z: 1 };
     const same = camera.value;
     panCamera(0, 0);
     expect(camera.value).toBe(same);
+  });
+});
+
+describe('zoomAt (v1.1.2)', () => {
+  beforeEach(() => {
+    camera.value = { x: 0, y: 0, z: 1 };
+  });
+  it('zooms around the pointer and stays within 25%–200%', () => {
+    zoomAt({ x: 100, y: 100 }, 1);
+    expect(camera.value).toEqual({ x: 50, y: 50, z: 2 });
+    zoomAt({ x: 100, y: 100 }, 5);
+    expect(camera.value.z).toBe(2);
+    zoomAt({ x: 0, y: 0 }, -10);
+    expect(camera.value.z).toBe(0.25);
+  });
+  it('sticks at 100% while passing through, then moves on', () => {
+    zoomAt({ x: 0, y: 0 }, 0.3);
+    const zIn = camera.value.z;
+    expect(zIn).toBeGreaterThan(1);
+    zoomAt({ x: 0, y: 0 }, -0.2); // raw 0.1: snapped
+    expect(camera.value.z).toBe(1);
+    zoomAt({ x: 0, y: 0 }, -0.2); // raw -0.1: still snapped
+    expect(camera.value.z).toBe(1);
+    zoomAt({ x: 0, y: 0 }, -0.2); // raw -0.3: out
+    expect(camera.value.z).toBeLessThan(1);
+  });
+  it('small steps from 100% are not trapped by the snap', () => {
+    for (let i = 0; i < 4; i++) zoomAt({ x: 0, y: 0 }, 0.05);
+    expect(camera.value.z).toBeGreaterThan(1);
+  });
+  it('resetZoom goes back to exactly 100% and the fit can limit the result', () => {
+    zoomAt({ x: 0, y: 0 }, -1);
+    resetZoom({ x: 0, y: 0 });
+    expect(camera.value.z).toBe(1);
+    panCamera(500, 0, (next, prev) => ({ ...next, x: Math.min(next.x, prev.x + 100) }));
+    expect(camera.value.x).toBe(100);
+  });
+});
+
+describe('setUiHidden (v1.1.2)', () => {
+  it('folds and unfolds a node, and leaves other nodes alone', () => {
+    loadProject(emptyProject());
+    const id = addNode('com.ivandaw.base-sine-synth', 0, 0);
+    setUiHidden(id, true);
+    expect(project.value.nodes.find((n) => n.id === id)?.uiHidden).toBe(true);
+    const same = project.value;
+    setUiHidden(id, true);
+    expect(project.value).toBe(same);
+    setUiHidden(id, false);
+    expect('uiHidden' in (project.value.nodes.find((n) => n.id === id) ?? {})).toBe(false);
   });
 });

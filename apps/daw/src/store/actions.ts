@@ -20,6 +20,15 @@ import {
   samePort,
 } from '../model/project';
 import {
+  type Camera,
+  LEVEL_MAX,
+  LEVEL_MIN,
+  levelOf,
+  type Pt,
+  snapLevel,
+  zoomAround,
+} from './camera';
+import {
   camera,
   deps,
   type NodeStatus,
@@ -199,11 +208,65 @@ export function stop(): void {
   deps.value.scheduler.stop();
 }
 
+/**
+ * Limits a camera move: gets the camera it would move to and the one it moves from.
+ * The canvas passes one that keeps the pan limits (`clampCamera`); without it the camera is free.
+ */
+export type CameraFit = (next: Camera, prev: Camera) => Camera;
+
+function moveCamera(next: Camera, fit: CameraFit | undefined): void {
+  const prev = camera.value;
+  const c = fit ? fit(next, prev) : next;
+  if (c.x === prev.x && c.y === prev.y && c.z === prev.z) return;
+  camera.value = c;
+}
+
 /** Moves the camera by (dx, dy) world px. Positive dx shows what is further right. */
-export function panCamera(dx: number, dy: number): void {
+export function panCamera(dx: number, dy: number, fit?: CameraFit): void {
   if (dx === 0 && dy === 0) return;
   const c = camera.value;
-  camera.value = { x: c.x + dx, y: c.y + dy };
+  moveCamera({ x: c.x + dx, y: c.y + dy, z: c.z }, fit);
+}
+
+/**
+ * The zoom level before the snap. It moves freely during a gesture; the camera shows
+ * `snapLevel(rawLevel)`, so a pinch through 100% sticks there for a moment, then passes it.
+ */
+let rawLevel = 0;
+
+function zoomTo(at: Pt, level: number, fit: CameraFit | undefined): void {
+  const c = camera.value;
+  const z = 2 ** snapLevel(level);
+  if (z === c.z) return;
+  moveCamera(zoomAround(c, at, z), fit);
+}
+
+/**
+ * Zooms by `dLevel` (log2 steps: +1 doubles) around screen point `at`, which stays put.
+ * 25%–200%, with a snap to exactly 100% near it.
+ */
+export function zoomAt(at: Pt, dLevel: number, fit?: CameraFit): void {
+  const c = camera.value;
+  // The camera was set some other way (a test, a reset): start from what it shows.
+  if (Math.abs(snapLevel(rawLevel) - levelOf(c.z)) > 1e-9) rawLevel = levelOf(c.z);
+  rawLevel = clamp(rawLevel + dLevel, LEVEL_MIN, LEVEL_MAX);
+  zoomTo(at, rawLevel, fit);
+}
+
+/** Back to 100%, around screen point `at`. */
+export function resetZoom(at: Pt, fit?: CameraFit): void {
+  rawLevel = 0;
+  zoomTo(at, 0, fit);
+}
+
+/** Folds a plugin's own UI away (`true`) or shows it again. Saved with the project (v1.1.2). */
+export function setUiHidden(id: string, hidden: boolean): void {
+  updateNode(id, (n) => {
+    if ((n.uiHidden === true) === hidden) return n;
+    if (hidden) return { ...n, uiHidden: true };
+    const { uiHidden: _gone, ...shown } = n;
+    return shown;
+  });
 }
 
 /** For the canvas: the element a node's plugin UI goes into, or null when the box is gone. */

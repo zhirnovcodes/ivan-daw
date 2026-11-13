@@ -109,3 +109,14 @@ describe('parseProject', () => {
     expect(() => parseProject(raw)).toThrow();
   });
 });
+
+describe('uiHidden (v1.1.2)', () => {
+  it('is read when true and dropped otherwise', () => {
+    const raw = sine() as { nodes: Record<string, unknown>[] };
+    raw.nodes[0] = { ...raw.nodes[0], uiHidden: true };
+    raw.nodes[1] = { ...raw.nodes[1], uiHidden: 'yes' };
+    const p = parseProject(raw);
+    expect(p.nodes[0]?.uiHidden).toBe(true);
+    expect('uiHidden' in (p.nodes[1] ?? {})).toBe(false);
+  });
+});

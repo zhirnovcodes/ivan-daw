@@ -27,6 +27,7 @@ export interface GraphNode {
   pan: number; // strip pan -1..1, default 0
   bypass: boolean; // v1: always false (no UI yet)
   params: Record<string, number>; // normalized 0..1, keyed by ParameterInfo.id; only values the user changed
+  uiHidden?: boolean; // v1.1.2: the plugin's own UI is folded away (`-` on the box); missing = shown
 }
 
 export interface PortRef {
@@ -102,6 +103,7 @@ function readNode(v: unknown, i: number): GraphNode {
     pan: isNum(v.pan) ? clamp(v.pan, -1, 1) : 0,
     bypass: v.bypass === true,
     params,
+    ...(v.uiHidden === true ? { uiHidden: true } : {}),
   };
 }
 

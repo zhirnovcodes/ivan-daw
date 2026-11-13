@@ -11,8 +11,8 @@ export interface IvanDawTestHook {
   project(): Project;
   /** Node id → 'loading' | 'ready' | 'error'. */
   status(): Record<string, string>;
-  /** The canvas camera (world point at the canvas's top-left). v1.1. */
-  camera(): { x: number; y: number };
+  /** The canvas camera: world point at the canvas's top-left (v1.1) and zoom `z`, 1 = 100% (v1.1.2). */
+  camera(): { x: number; y: number; z: number };
   /** 'play' when the page opened at /play_only or with ?play_only. v1.1. */
   mode(): 'edit' | 'play';
 }

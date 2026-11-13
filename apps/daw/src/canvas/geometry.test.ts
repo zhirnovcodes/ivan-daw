@@ -93,11 +93,11 @@ describe('hit testing and camera', () => {
     expect(clampToWorld({ x: -9000, y: -2500 })).toEqual({ x: WORLD_MIN, y: WORLD_MIN });
   });
   it('turns screen points into world points with the camera', () => {
-    expect(toWorld({ x: 10, y: 20 }, { x: 0, y: 0 })).toEqual({ x: 10, y: 20 });
-    expect(toWorld({ x: 10, y: 20 }, { x: 300, y: -50 })).toEqual({ x: 310, y: -30 });
+    expect(toWorld({ x: 10, y: 20 }, { x: 0, y: 0, z: 1 })).toEqual({ x: 10, y: 20 });
+    expect(toWorld({ x: 10, y: 20 }, { x: 300, y: -50, z: 1 })).toEqual({ x: 310, y: -30 });
   });
   it('a port is hit at the same screen spot after panning', () => {
-    const camera = { x: 250, y: 40 };
+    const camera = { x: 250, y: 40, z: 1 };
     const shifted = spots.map((s) => ({ ...s, center: toWorld(s.center, camera) }));
     expect(portAt(toWorld({ x: 28, y: 12 }, camera), shifted)?.ref.node).toBe('b');
   });

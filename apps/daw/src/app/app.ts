@@ -120,8 +120,8 @@ export async function boot(): Promise<App> {
       const r = ui.canvas.getBoundingClientRect();
       const c = camera.peek();
       return {
-        x: Math.round(c.x + r.width / 2 - NODE_HALF.x),
-        y: Math.round(c.y + r.height / 2 - NODE_HALF.y),
+        x: Math.round(c.x + r.width / (2 * c.z) - NODE_HALF.x),
+        y: Math.round(c.y + r.height / (2 * c.z) - NODE_HALF.y),
       };
     },
   });

@@ -145,11 +145,8 @@ export function clampToWorld(pos: Pt): Pt {
   return { x: Math.max(WORLD_MIN, pos.x), y: Math.max(WORLD_MIN, pos.y) };
 }
 
-/** Screen point (relative to the canvas) → world point, for a camera whose top-left is at `camera`. */
-export const toWorld = (screen: Pt, camera: Pt): Pt => ({
-  x: screen.x + camera.x,
-  y: screen.y + camera.y,
-});
+/** Screen point (relative to the canvas) ↔ world point. With zoom since v1.1.2. */
+export { toScreen, toWorld } from '../store/camera';
 
 /** Pixels per line for wheel events in line mode (Firefox mouse wheels). */
 export const WHEEL_LINE_PX = 16;

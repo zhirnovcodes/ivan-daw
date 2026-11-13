@@ -8,24 +8,25 @@ test('right-drag and wheel pan the canvas', async ({ page }) => {
   const node = page.locator('.ivd-node[data-node="n1"]');
   await expect(node).toBeVisible();
   const camera = () => page.evaluate(() => window.__ivandaw?.camera());
-  expect(await camera()).toEqual({ x: 0, y: 0 });
+  expect(await camera()).toEqual({ x: 0, y: 0, z: 1 });
 
   const before = await node.boundingBox();
   const box = await canvas.boundingBox();
   if (!before || !box) throw new Error('no layout');
 
-  // Right-drag 120 px right and 40 px down: the view follows the hand, so the camera moves the other way.
+  // Right-drag 120 px left: the view follows the hand, so the camera moves the other way.
+  // (Sideways only: the sine scene is one row, so the v1.1.2 pan limit stops vertical moves.)
   const start = { x: box.x + box.width - 60, y: box.y + box.height - 60 };
   await page.mouse.move(start.x, start.y);
   await page.mouse.down({ button: 'right' });
-  await page.mouse.move(start.x - 120, start.y - 40, { steps: 6 });
+  await page.mouse.move(start.x - 120, start.y, { steps: 6 });
   await page.mouse.up({ button: 'right' });
-  expect(await camera()).toEqual({ x: 120, y: 40 });
+  expect(await camera()).toEqual({ x: 120, y: 0, z: 1 });
 
   const after = await node.boundingBox();
   if (!after) throw new Error('node gone');
   expect(after.x).toBeCloseTo(before.x - 120, 0);
-  expect(after.y).toBeCloseTo(before.y - 40, 0);
+  expect(after.y).toBeCloseTo(before.y, 0);
   // Panning is a view change only: the project keeps the node where it was.
   const pos = await page.evaluate(() => {
     const n = window.__ivandaw?.project().nodes.find((x) => x.id === 'n1');
@@ -34,6 +35,6 @@ test('right-drag and wheel pan the canvas', async ({ page }) => {
   expect(pos).toEqual({ x: 80, y: 160 });
 
   await page.mouse.move(box.x + 300, box.y + 300);
-  await page.mouse.wheel(30, -20);
-  await expect.poll(camera).toEqual({ x: 150, y: 20 });
+  await page.mouse.wheel(30, 0);
+  await expect.poll(camera).toEqual({ x: 150, y: 0, z: 1 });
 });

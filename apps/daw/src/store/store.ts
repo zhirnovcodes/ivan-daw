@@ -8,6 +8,7 @@ import type { Scheduler } from '../contracts/scheduler';
 import { createStubRouter, createStubScheduler } from '../contracts/stubs';
 import { MASTER_MANIFEST, type ManifestMap } from '../model/catalog';
 import { emptyProject, MASTER_PLUGIN, type Project } from '../model/project';
+import type { Camera } from './camera';
 
 export type NodeStatus = 'loading' | 'ready' | 'error';
 
@@ -39,8 +40,11 @@ export function provide(next: Partial<StoreDeps>): void {
 
 export const project = signal<Project>(emptyProject());
 export const selection = signal<Selection>({});
-/** The world point shown at the canvas's top-left corner. View state: not part of the project, not saved. */
-export const camera = signal<{ x: number; y: number }>({ x: 0, y: 0 });
+/**
+ * The world point shown at the canvas's top-left corner, and the zoom (`z`, 1 = 100%, v1.1.2).
+ * View state: not part of the project, not saved.
+ */
+export const camera = signal<Camera>({ x: 0, y: 0, z: 1 });
 /** 'play' = play-only (v1.1): the graph is locked, the sound stays playable. Set once at boot. */
 export const mode = signal<'edit' | 'play'>('edit');
 /**
