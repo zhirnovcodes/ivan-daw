@@ -4,7 +4,7 @@ import { rms } from './helpers';
 
 // E2: one broken plugin doesn't break the DAW.
 
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 test('broken plugins show an error; the rest of the scene still plays', async ({ page }) => {
   await installFixturePlugins(page);
@@ -42,7 +42,7 @@ test('broken plugins show an error; the rest of the scene still plays', async ({
     await expect(box).toHaveAttribute('data-status', 'error');
     await expect(box.locator('.ivd-dot')).toHaveAttribute(
       'title',
-      new RegExp(`^${escape(message)}`),
+      new RegExp(`^${escapeRe(message)}`),
     );
   }
 
