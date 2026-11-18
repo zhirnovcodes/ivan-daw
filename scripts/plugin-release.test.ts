@@ -4,10 +4,11 @@ import {
   buildNumber,
   latestBuild,
   needsFetch,
+  readPin,
   safeEntryPath,
-} from './beatality-release.mjs';
+} from './plugin-release.mjs';
 
-describe('Beatality release helpers', () => {
+describe('plugin release helpers', () => {
   it('reads build numbers only from daw-build tags', () => {
     expect(buildNumber('daw-build-2')).toBe(2);
     expect(buildNumber('daw-build-x')).toBeUndefined();
@@ -20,8 +21,11 @@ describe('Beatality release helpers', () => {
   });
 
   it('builds the release download URL', () => {
-    expect(assetUrl('daw-build-2')).toBe(
+    expect(assetUrl('zhirnovcodes/Beatality', 'beatality-daw.zip', 'daw-build-2')).toBe(
       'https://github.com/zhirnovcodes/Beatality/releases/download/daw-build-2/beatality-daw.zip',
+    );
+    expect(assetUrl('someone/arp', 'arp-daw.zip', 'daw-build-7')).toBe(
+      'https://github.com/someone/arp/releases/download/daw-build-7/arp-daw.zip',
     );
   });
 
@@ -39,5 +43,39 @@ describe('Beatality release helpers', () => {
     expect(safeEntryPath('../evil.js')).toBeUndefined();
     expect(safeEntryPath('/etc/passwd')).toBeUndefined();
     expect(safeEntryPath('C:/x.js')).toBeUndefined();
+  });
+
+  it('reads a full release pin', () => {
+    const pkg = {
+      name: '@ivandaw/beatality',
+      ivandaw: {
+        id: 'com.beatality.beatality',
+        repo: 'zhirnovcodes/Beatality',
+        asset: 'beatality-daw.zip',
+        release: 'daw-build-4',
+      },
+    };
+    expect(readPin(pkg, 'beatality')).toEqual({
+      id: 'com.beatality.beatality',
+      repo: 'zhirnovcodes/Beatality',
+      asset: 'beatality-daw.zip',
+      release: 'daw-build-4',
+    });
+  });
+
+  it('returns undefined for a first-party plugin', () => {
+    expect(
+      readPin({ name: 'x', ivandaw: { id: 'ivandaw.base-sine-synth' } }, 'base-sine-synth'),
+    ).toBeUndefined();
+    expect(readPin({ name: 'x' }, 'x')).toBeUndefined();
+  });
+
+  it('throws on a half-filled pin, naming the folder', () => {
+    expect(() => readPin({ ivandaw: { id: 'a', release: 'daw-build-1' } }, 'arp')).toThrow(
+      /plugins\/arp\/package\.json.*repo, asset/,
+    );
+    expect(() =>
+      readPin({ ivandaw: { id: 'a', repo: 'o/arp', asset: 'arp-daw.zip', release: 3 } }, 'arp'),
+    ).toThrow(/release/);
   });
 });

@@ -9,14 +9,10 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { unzipSync } from 'fflate';
-import {
-  assetUrl,
-  latestBuild,
-  MARKER,
-  needsFetch,
-  REPO,
-  safeEntryPath,
-} from './beatality-release.mjs';
+import { assetUrl, latestBuild, MARKER, needsFetch, safeEntryPath } from './plugin-release.mjs';
+
+const REPO = 'zhirnovcodes/Beatality';
+const ASSET = 'beatality-daw.zip';
 
 const root = resolve(import.meta.dirname, '..');
 const pkgFile = join(root, 'plugins', 'beatality', 'package.json');
@@ -60,8 +56,10 @@ async function main() {
   if (!needsFetch(tag, installed)) return;
 
   log(`downloading ${tag} …`);
-  const res = await fetch(assetUrl(tag), { headers: { 'User-Agent': 'ivandaw-fetch-beatality' } });
-  if (!res.ok) throw new Error(`${assetUrl(tag)}: HTTP ${res.status}`);
+  const res = await fetch(assetUrl(REPO, ASSET, tag), {
+    headers: { 'User-Agent': 'ivandaw-fetch-beatality' },
+  });
+  if (!res.ok) throw new Error(`${assetUrl(REPO, ASSET, tag)}: HTTP ${res.status}`);
   const files = unzipSync(new Uint8Array(await res.arrayBuffer()));
 
   rmSync(dist, { recursive: true, force: true });
