@@ -9,7 +9,32 @@ const SYNTH = 'synth';
 const FX = 'fx';
 const AUTO = 'auto-only';
 const LFO = 'lfo';
+const HOLD = 'hold';
+const ARP = 'arp';
 const catalog: CatalogEntry[] = [
+  {
+    id: HOLD,
+    name: 'Note hold',
+    kind: 'midi',
+    url: '',
+    ports: [{ id: 'out', label: 'out', kind: 'events', direction: 'out', accepts: ['midi'] }],
+  },
+  {
+    id: ARP,
+    name: 'Arp',
+    kind: 'midi',
+    url: '',
+    ports: [
+      {
+        id: 'in',
+        label: 'in',
+        kind: 'events',
+        direction: 'in',
+        accepts: ['midi', 'transport'],
+      },
+      { id: 'out', label: 'out', kind: 'events', direction: 'out', accepts: ['midi'] },
+    ],
+  },
   {
     id: GEN,
     name: 'Gen',
@@ -141,6 +166,52 @@ describe('validate', () => {
     expect(v(p, 's1', 'in', 's1', 'out')).toEqual({ ok: false, reason: 'self' });
     // Wrong direction and also wrong kind → direction.
     expect(v(p, 'g1', 'in', 's1', 'out')).toEqual({ ok: false, reason: 'direction' });
+  });
+});
+
+describe('MIDI → MIDI chains', () => {
+  const chain = (cables: [string, string, string, string][] = []): Project =>
+    parseProject({
+      ...emptyProject(),
+      nodes: [
+        { id: 'h1', plugin: HOLD, x: 0, y: 0 },
+        { id: 'arpA', plugin: ARP, x: 0, y: 0 },
+        { id: 'arpB', plugin: ARP, x: 0, y: 0 },
+        { id: 's1', plugin: SYNTH, x: 0, y: 0 },
+        ...emptyProject().nodes,
+      ],
+      cables: cables.map(([fn, fp, tn, tp], i) => ({
+        id: `c${i + 1}`,
+        from: { node: fn, port: fp },
+        to: { node: tn, port: tp },
+      })),
+    });
+
+  it('Note hold → arp → synth is allowed', () => {
+    const p = chain();
+    expect(v(p, 'h1', 'out', 'arpA', 'in')).toEqual({ ok: true });
+    const q = chain([['h1', 'out', 'arpA', 'in']]);
+    expect(v(q, 'arpA', 'out', 's1', 'in')).toEqual({ ok: true });
+  });
+
+  it('arp → Note hold is refused: Note hold has no input', () => {
+    expect(v(chain(), 'arpA', 'out', 'h1', 'in')).toEqual({ ok: false, reason: 'kind' });
+  });
+
+  it('arp A → arp B → arp A is refused as a cycle', () => {
+    const p = chain([['arpA', 'out', 'arpB', 'in']]);
+    expect(v(p, 'arpB', 'out', 'arpA', 'in')).toEqual({ ok: false, reason: 'cycle' });
+  });
+
+  it('plans the chain as two events cables', () => {
+    const p = chain([
+      ['h1', 'out', 'arpA', 'in'],
+      ['arpA', 'out', 's1', 'in'],
+      ['s1', 'out', 'master', 'in'],
+    ]);
+    const w = plan(p, manifests, { h1: 'ready', arpA: 'ready', s1: 'ready', master: 'ready' });
+    expect(w.events.map((e) => e.id)).toEqual(['c1', 'c2']);
+    expect(eventTable(w).get('arpA:out')).toEqual([{ node: 's1', port: 'in' }]);
   });
 });
 

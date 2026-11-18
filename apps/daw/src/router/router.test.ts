@@ -18,6 +18,8 @@ import { CABLE_DISCONNECT_MS, createRouter, type LiveRouter } from './router';
 const GEN = 'gen';
 const SYNTH = 'synth';
 const MOD = 'mod';
+/** A MIDI → MIDI plugin (arp, chord): notes in, notes out. */
+const ARP = 'arp';
 const modOut: PortInfo = { id: 'out', label: 'out', kind: 'modulation', direction: 'out' };
 const evOut: PortInfo & { kind: 'events' } = {
   id: 'out',
@@ -33,6 +35,13 @@ const evIn: PortInfo & { kind: 'events' } = {
   direction: 'in',
   accepts: ['midi'],
 };
+const arpIn: PortInfo & { kind: 'events' } = {
+  id: 'in',
+  label: 'in',
+  kind: 'events',
+  direction: 'in',
+  accepts: ['midi', 'transport'],
+};
 const audioOut: PortInfo & { kind: 'audio' } = {
   id: 'out',
   label: 'out',
@@ -45,6 +54,7 @@ const catalog: CatalogEntry[] = [
   { id: GEN, name: 'Gen', kind: 'midi', url: '', ports: [evOut] },
   { id: SYNTH, name: 'Synth', kind: 'instrument', url: '', ports: [evIn, audioOut] },
   { id: MOD, name: 'Mod', kind: 'modulator', url: '', ports: [modOut] },
+  { id: ARP, name: 'Arp', kind: 'midi', url: '', ports: [arpIn, evOut] },
 ];
 
 interface Fake extends PluginInstance {
@@ -65,7 +75,11 @@ function fakeInstance(plugin: string): Fake {
   const listeners = new Set<(e: PluginEvent) => void>();
   const ports = new Map<string, PortHandle>();
   if (plugin === GEN) ports.set('out', { info: evOut });
-  else if (plugin === MOD) ports.set('out', { info: modOut as PortInfo & { kind: 'modulation' } });
+  else if (plugin === ARP) {
+    ports.set('in', { info: arpIn });
+    ports.set('out', { info: evOut });
+  } else if (plugin === MOD)
+    ports.set('out', { info: modOut as PortInfo & { kind: 'modulation' } });
   else {
     ports.set('in', { info: evIn });
     ports.set('out', { info: audioOut, node: ctx.createGain() as unknown as AudioNode, index: 0 });
@@ -170,6 +184,8 @@ beforeEach(() => {
         { id: 'n2', plugin: SYNTH, x: 0, y: 0 },
         { id: 'n3', plugin: SYNTH, x: 0, y: 0 },
         { id: 'm1', plugin: MOD, x: 0, y: 0 },
+        { id: 'a1', plugin: ARP, x: 0, y: 0 },
+        { id: 'a2', plugin: ARP, x: 0, y: 0 },
         { id: 'master', plugin: 'builtin.master', x: 0, y: 0 },
       ],
       cables: [
@@ -289,6 +305,60 @@ describe('events', () => {
     gen.emit({ type: 'midi', time: 2, bytes: [0x80, 60, 0] });
     expect(notices).toEqual(['n2: schedule failed: kaboom']);
     expect(other.got).toHaveLength(2);
+  });
+});
+
+describe('MIDI → MIDI chains', () => {
+  const notes = (f: Fake) => f.got.filter((e) => e.type === 'midi');
+
+  /** n1 (gen) → a1 (arp) → a2 (arp) → n3 (synth). c1 (n1 → n2) stays. */
+  function chain() {
+    const gen = ready('n1');
+    const a = ready('a1');
+    const b = ready('a2');
+    const syn = ready('n3');
+    for (const [f, t] of [
+      ['n1', 'a1'],
+      ['a1', 'a2'],
+      ['a2', 'n3'],
+    ] as const) {
+      const r = connect({ node: f, port: 'out' }, { node: t, port: 'in' });
+      if (!r.ok) throw new Error(`${f} → ${t}: ${r.reason}`);
+    }
+    return { gen, a, b, syn };
+  }
+
+  it('events from A’s listen() reach B’s schedule() with the same time, all along the chain', () => {
+    const { gen, a, b, syn } = chain();
+    gen.emit({ type: 'midi', time: 1.5, bytes: [0x90, 60, 100] });
+    expect(notes(a)).toEqual([{ type: 'midi', time: 1.5, bytes: [0x90, 60, 100], port: 'in' }]);
+    // A transposes and emits; B gets it at the same time.
+    a.emit({ type: 'midi', time: 1.5, bytes: [0x90, 72, 100] });
+    expect(notes(b)).toEqual([{ type: 'midi', time: 1.5, bytes: [0x90, 72, 100], port: 'in' }]);
+    b.emit({ type: 'midi', time: 1.75, bytes: [0x90, 84, 90] });
+    expect(notes(syn)).toEqual([{ type: 'midi', time: 1.75, bytes: [0x90, 84, 90], port: 'in' }]);
+    // Nothing skips a hop: the gen's note never reaches B or the synth directly.
+    expect(notes(b)).toHaveLength(1);
+  });
+
+  it('transport events reach both MIDI plugins in the chain', async () => {
+    const { a, b } = chain();
+    await deps.value.scheduler.play();
+    for (const f of [a, b]) {
+      expect(f.got.at(-1)).toMatchObject({ type: 'transport', state: { playing: true } });
+    }
+  });
+
+  it('removing the cable A → B sends CC 123 to B and stops forwarding', () => {
+    const { a, b } = chain();
+    const cable = project.value.cables.find((c) => c.from.node === 'a1' && c.to.node === 'a2');
+    if (!cable) throw new Error('no a1 → a2 cable');
+    ctx.currentTime = 2;
+    disconnect(cable.id);
+    expect(b.got.at(-1)).toEqual({ type: 'midi', time: 2, bytes: [0xb0, 123, 0] });
+    const before = b.got.length;
+    a.emit({ type: 'midi', time: 3, bytes: [0x90, 60, 100] });
+    expect(b.got).toHaveLength(before);
   });
 });
 
