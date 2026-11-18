@@ -87,6 +87,8 @@ export function createEngine(opts: EngineOptions): LiveEngine {
   const live = new Map<string, Live>();
   /** Node id → token of its current load; a load whose token is gone was cancelled by removal. */
   const pending = new Map<string, object>();
+  /** Node id → plugin id whose load failed. Not retried until the node is removed or its plugin changes. */
+  const failed = new Map<string, string>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
   const notify = (node: string, level: NotifyLevel, message: string): void => {
@@ -173,6 +175,7 @@ export function createEngine(opts: EngineOptions): LiveEngine {
     } catch (e) {
       if (!current()) return;
       pending.delete(id);
+      failed.set(id, node.plugin);
       const message =
         e instanceof LoadError
           ? e.message
@@ -233,13 +236,14 @@ export function createEngine(opts: EngineOptions): LiveEngine {
         if (n.strip && n.pan !== node.pan) n.strip.setPan(node.pan);
         n.gain = node.gain;
         n.pan = node.pan;
-      } else if (!pending.has(node.id)) {
+      } else if (!pending.has(node.id) && failed.get(node.id) !== node.plugin) {
         void load(node);
       }
     }
     for (const id of [...live.keys(), ...pending.keys()]) {
       if (!ids.has(id)) unload(id);
     }
+    for (const id of failed.keys()) if (!ids.has(id)) failed.delete(id);
   }
 
   return {

@@ -324,6 +324,21 @@ describe('loading', () => {
     // The rest of the graph is unaffected.
     expect(nodeStatus.value.n2).toBe('ready');
   });
+
+  it('does not retry a broken node on every later project change', async () => {
+    start([
+      { id: 'n1', plugin: BROKEN },
+      { id: 'n2', plugin: SYNTH },
+    ]);
+    await flush();
+    const failures = () => notices.filter((n) => n.startsWith('n1 error')).length;
+    expect(failures()).toBe(1);
+    setGain('n2', 0.7);
+    setPan('n2', 0.2);
+    await flush();
+    expect(nodeStatus.value.n1).toBe('error');
+    expect(failures()).toBe(1);
+  });
 });
 
 describe('strip changes', () => {
