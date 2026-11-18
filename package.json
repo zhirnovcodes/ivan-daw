@@ -7,9 +7,9 @@
   },
   "packageManager": "pnpm@10.34.9",
   "scripts": {
-    "postinstall": "node scripts/fetch-beatality.mjs",
-    "dev": "node scripts/fetch-beatality.mjs && pnpm --filter ivandaw dev",
-    "beatality:update": "node scripts/fetch-beatality.mjs --update",
+    "postinstall": "node scripts/fetch-plugins.mjs",
+    "dev": "node scripts/fetch-plugins.mjs && pnpm --filter ivandaw dev",
+    "plugins:update": "node scripts/fetch-plugins.mjs --update",
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "biome check .",
