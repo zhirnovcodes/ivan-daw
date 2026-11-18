@@ -14,9 +14,12 @@ IvanDAW is a node-graph DAW in the browser. It runs on localhost only: no hostin
 | zhirnovcodes/ivan-daw (this one) | `ivandaw` | DAW app and first-party plugins, as a pnpm workspace |
 | zhirnovcodes/ivan-daw-core | `ivandaw-core` | API v2 types, timing math, MIDI helpers, Envelope / Smoother |
 | zhirnovcodes/Beatality | – | Beatality. Worked on in its own session; this repo only fetches its pinned `daw-build-<n>` release |
+| External plugins | – | One repo each, built from `docs/plugin-dev/`, fetched as pinned `daw-build-<n>` releases. Beatality is the first. |
 
 This repo installs core from a git tag: `github:zhirnovcodes/ivan-daw-core#vX.Y.Z`.
 In a cloud session, attach both repos, or the install fails (the GitHub proxy refuses repos that aren't attached).
+
+External plugins: `plugins/<name>/package.json` pins `ivandaw.repo`, `ivandaw.asset` and `ivandaw.release`; `scripts/fetch-plugins.mjs` downloads the release into `plugins/<name>/dist/`. How to build one and bring it in: `docs/plugin-dev/README.md`.
 
 ## Folder map
 
@@ -56,6 +59,8 @@ The store gets its services through `provide({ scheduler, router, manifests })`.
 - `pnpm i`
 - `pnpm dev` serves http://localhost:5173.
 - `pnpm check` runs typecheck, Biome, Vitest and Playwright. Run it before every push.
+- `pnpm plugins:update [<name>]` moves one external plugin's pin (or all of them) to its newest `daw-build-<n>` and fetches it.
+- `node scripts/fetch-plugins.mjs --zip <name> <zip>` installs a plugin PR's artifact for a local test; `pnpm i` / `pnpm dev` restore the pin.
 
 Use Node >= 22: cloud sessions run Node 22, the PC runs Node 24. Use pnpm 10 through corepack.
 
@@ -64,6 +69,7 @@ Use Node >= 22: cloud sessions run Node 22, the PC runs Node 24. Use pnpm 10 thr
 - Touch only the folders your task lists.
 - Contracts change only as the v1.1 design's "Contract changes" table says. Any other contract change: stop and ask Ivan in the session.
 - Root `package.json` and `pnpm-lock.yaml` change only in their own commit.
+- A plugin pin moves in its own commit `<name>: pin daw-build-<n> (<why>)`, after a localhost check. ivan-daw never edits a plugin's code; changes go to that plugin's repo by PR.
 - Never call `new AudioContext()` outside `apps/daw/src/engine`.
 - Keep all timing in AudioContext seconds. Never use `setTimeout` or `setInterval` for musical timing: use `createTicker` and the lookahead helpers from ivandaw-core.
 - Every sound start, stop or change gets a fade. See "Fades and clicks" in the v1 tech design.
