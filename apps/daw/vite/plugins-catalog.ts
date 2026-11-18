@@ -3,7 +3,7 @@
 // - GET /plugins/catalog.json  → { plugins: [{ id, name, kind, url, ports }] } (CatalogEntry).
 // - GET /plugins/<id>/*        → plugins/<name>/dist/*.
 // - `pnpm dev` also builds each plugin that has a `build` script and keeps it building in watch mode.
-//   A plugin without one (Beatality) is prebuilt: its dist/ comes from scripts/fetch-beatality.mjs.
+//   A plugin without one (Beatality) is prebuilt: its dist/ comes from scripts/fetch-plugins.mjs.
 //
 // The catalog is read from plugins/*/package.json ("ivandaw": { "id" }) and
 // plugins/*/dist/manifest.json on every request, so a plugin that finishes building after the
