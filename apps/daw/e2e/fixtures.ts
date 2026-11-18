@@ -96,18 +96,18 @@ export interface FixtureNode {
   plugin: string;
 }
 
-/** Serves a project at /projects/<name>.json (nodes in a row, then Master); open it with `?project=<name>`. */
+/** Serves a project at /projects/<name>.json (nodes in a row, Master below); open it with `?project=<name>`. */
 export async function serveProject(
   page: Page,
   name: string,
   nodes: FixtureNode[],
   cables: [string, string, string, string][],
 ): Promise<void> {
-  const node = (id: string, plugin: string, i: number) => ({
+  const node = (id: string, plugin: string, x: number, y: number) => ({
     id,
     plugin,
-    x: 60 + 260 * i,
-    y: 120,
+    x,
+    y,
     gain: 1,
     pan: 0,
     bypass: false,
@@ -118,8 +118,9 @@ export async function serveProject(
     version: 1,
     transport: { bpm: 120, numerator: 4, denominator: 4 },
     nodes: [
-      ...nodes.map((n, i) => node(n.id, n.plugin, i)),
-      node('master', 'builtin.master', nodes.length),
+      ...nodes.map((n, i) => node(n.id, n.plugin, 40 + 260 * i, 40)),
+      // Below the row, so a wide plugin box (Beatality) never covers it or is covered by it.
+      node('master', 'builtin.master', 40, 520),
     ],
     cables: cables.map(([fn, fp, tn, tp], i) => ({
       id: `c${i + 1}`,
