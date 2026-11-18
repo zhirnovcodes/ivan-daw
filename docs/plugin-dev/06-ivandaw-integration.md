@@ -11,47 +11,37 @@ ivan-daw never builds an external plugin. It pins one `daw-build-<n>` release an
 
 So a plugin is "in the DAW" as soon as `plugins/<name>/package.json` exists and `dist/` holds the unzipped release.
 
-## Today: Beatality only
+## The files
 
 | File | Role |
 | --- | --- |
-| `plugins/beatality/package.json` | `"ivandaw": { "id": "com.beatality.beatality", "release": "daw-build-4" }` |
-| `scripts/beatality-release.mjs` | pure helpers: `REPO`, `ASSET`, `latestBuild`, `assetUrl`, `needsFetch`, `safeEntryPath` (Vitest-tested) |
-| `scripts/fetch-beatality.mjs` | download + unzip on `pnpm i` / `pnpm dev`; `--update` moves the pin |
-| `package.json` scripts | `postinstall`, `dev`, `beatality:update` call it |
+| `plugins/<name>/package.json` | the pin: `"ivandaw": { "id", "repo", "asset", "release" }` (see below) |
+| `scripts/plugin-release.mjs` | pure helpers: `readPin`, `latestBuild`, `assetUrl(repo, asset, tag)`, `needsFetch`, `safeEntryPath` (Vitest-tested) |
+| `scripts/fetch-plugins.mjs` | for every pinned plugin: download + unzip on `pnpm i` / `pnpm dev`; `--update [<name>]` moves pins; `--zip <name> <zip>` installs a local zip |
+| `package.json` scripts | `postinstall`, `dev`, `plugins:update` call it |
 
-`REPO` and `ASSET` are constants for Beatality, so a second external plugin needs the step below once.
+An external plugin's `package.json`:
 
-## One-time ivan-daw change: fetch any external plugin
+```json
+{
+  "name": "@ivandaw/<name>",
+  "version": "0.0.0",
+  "private": true,
+  "description": "<Name>, prebuilt by its CI. dist/ is downloaded by scripts/fetch-plugins.mjs, never built here.",
+  "ivandaw": {
+    "id": "<id>",
+    "repo": "zhirnovcodes/<name>",
+    "asset": "<name>-daw.zip",
+    "release": "daw-build-1"
+  }
+}
+```
 
-A task for an ivan-daw session (it changes root `package.json`, so that goes in its own commit; C6 catalog is unchanged).
+`repo`, `asset` and `release` go together: a package with only some of them is an error. A package with none is first-party and built here.
 
-1. Each external plugin's `package.json` names its repo and asset:
+Per plugin, `fetch-plugins.mjs` writes the release tag to `dist/.release` and skips the download when it matches the pin. It checks the zip has a `manifest.json` whose `id` equals `ivandaw.id`. A plain run never fails (offline, it keeps what is installed and warns); a failed `--update` exits 1. Logs start with `[plugins] <name>:`.
 
-   ```json
-   {
-     "name": "@ivandaw/<name>",
-     "version": "0.0.0",
-     "private": true,
-     "description": "<Name>, prebuilt by its CI. dist/ is downloaded by scripts/fetch-plugins.mjs, never built here.",
-     "ivandaw": {
-       "id": "<id>",
-       "repo": "zhirnovcodes/<name>",
-       "asset": "<name>-daw.zip",
-       "release": "daw-build-1"
-     }
-   }
-   ```
-
-   Add `"repo": "zhirnovcodes/Beatality", "asset": "beatality-daw.zip"` to Beatality's.
-
-2. Rename `scripts/beatality-release.mjs` → `scripts/plugin-release.mjs`. `assetUrl(repo, asset, tag)` takes the repo and asset instead of constants. Other helpers stay. Update its test.
-3. Rename `scripts/fetch-beatality.mjs` → `scripts/fetch-plugins.mjs`. It loops over every `plugins/*/package.json` with `ivandaw.repo`, and for each one does what it does for Beatality today (marker file `.release`, offline keeps what is installed, `--update` fails loudly). `--update <name>` moves one pin; `--update` alone moves all.
-4. Root `package.json`: `postinstall` and `dev` call `fetch-plugins.mjs`; replace `beatality:update` with `"plugins:update": "node scripts/fetch-plugins.mjs --update"`.
-5. `.gitignore`: nothing to do; `dist/` is already ignored everywhere in the repo.
-6. `pnpm check` green, commit, push.
-
-## Adding a new plugin (after the step above)
+## Adding a new plugin
 
 1. Plugin repo: first merge to `master` → release `daw-build-1` exists with `<name>-daw.zip`.
 2. ivan-daw: create `plugins/<name>/package.json` as above with `"release": "daw-build-1"`.
@@ -67,6 +57,18 @@ pnpm dev                     # listen
 pnpm check
 git commit -m "<name>: pin daw-build-<n> (<what changed>)"
 ```
+
+`pnpm plugins:update` with no name moves every pin.
+
+Test a plugin PR before it merges:
+
+```
+# test a plugin PR: download its <name>-daw artifact from the Actions run, then
+node scripts/fetch-plugins.mjs --zip <name> ~/Downloads/<name>-daw.zip
+pnpm --filter ivandaw dev    # not `pnpm dev`: that fetches first and would restore the pin
+```
+
+`--zip` writes `local` into `dist/.release`, so the next `pnpm i` or `pnpm dev` sees it differs from the pin and restores the pinned release. A local test never sticks by accident.
 
 Matches the existing commit `Beatality: pin daw-build-4 (retrig fix)`.
 

@@ -5,12 +5,16 @@
 //   node scripts/fetch-plugins.mjs                  fetch every pinned release that is not installed yet
 //   node scripts/fetch-plugins.mjs --update         pin the newest daw-build-<n> of every plugin, then fetch
 //   node scripts/fetch-plugins.mjs --update <name>  the same for plugins/<name> only
+//   node scripts/fetch-plugins.mjs --zip <name> <zip>
+//       install a local zip (a plugin PR's <name>-daw artifact) into plugins/<name>/dist, marked
+//       `local`. The next plain run sees local ≠ pin and restores the pinned release.
 //
 // Runs on `pnpm i` and before `pnpm dev`. A plain run never fails: when a plugin can't be fetched
 // (offline, GitHub down, bad zip) it warns, keeps that plugin's installed build and goes on with
 // the others. A failed --update sets exit code 1.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { unzipSync } from 'fflate';
 import {
@@ -111,7 +115,34 @@ async function fetchPinned(name, pin) {
   log(name, `installed ${pin.release} (${count} files)`);
 }
 
+/** The marker --zip writes; never equal to a daw-build-<n> pin. */
+const LOCAL = 'local';
+
+function installZip(name, zipPath) {
+  if (!name || !zipPath)
+    throw new Error('usage: node scripts/fetch-plugins.mjs --zip <name> <path-to-zip>');
+  const folder = pluginFolders().find((f) => f.name === name);
+  if (!folder) throw new Error(`no plugins/${name}/package.json`);
+  const file = resolve(zipPath.replace(/^~(?=$|[/\\])/, homedir()));
+  const count = install(name, folder.pkg.ivandaw?.id, new Uint8Array(readFileSync(file)), LOCAL);
+  log(
+    name,
+    `installed ${file} as '${LOCAL}' (${count} files). Run \`pnpm --filter ivandaw dev\` to try it; \`pnpm i\` or \`pnpm dev\` restores the pin.`,
+  );
+}
+
 async function main(argv) {
+  const z = argv.indexOf('--zip');
+  if (z !== -1) {
+    try {
+      installZip(argv[z + 1], argv[z + 2]);
+    } catch (e) {
+      console.error(`[plugins] ${argv[z + 1] ?? '--zip'}: ${message(e)}`);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   const at = argv.indexOf('--update');
   const update = at !== -1;
   const only = update && argv[at + 1] && !argv[at + 1].startsWith('--') ? argv[at + 1] : undefined;
