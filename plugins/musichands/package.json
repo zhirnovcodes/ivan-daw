@@ -1,0 +1,12 @@
+{
+  "name": "@ivandaw/musichands",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MusicHands, prebuilt by MusicHands' CI. dist/ is downloaded by scripts/fetch-plugins.mjs, never built here.",
+  "ivandaw": {
+    "id": "com.ivandaw.musichands",
+    "repo": "zhirnovcodes/MusicHands",
+    "asset": "musichands-daw.zip",
+    "release": "daw-build-1"
+  }
+}
