@@ -37,6 +37,8 @@ importers:
         specifier: ^8.3.8
         version: 8.3.8
 
+  plugins/axolotl-pad: {}
+
   plugins/base-sine-synth:
     dependencies:
       ivandaw-core:
@@ -48,6 +50,8 @@ importers:
         version: 8.3.8
 
   plugins/beatality: {}
+
+  plugins/choko-arpegio: {}
 
   plugins/control-sliders:
     dependencies:

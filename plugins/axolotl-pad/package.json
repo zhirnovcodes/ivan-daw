@@ -1,0 +1,12 @@
+{
+  "name": "@ivandaw/axolotl-pad",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Axolotl Pad, prebuilt by axolotl-pad's CI. dist/ is downloaded by scripts/fetch-plugins.mjs, never built here.",
+  "ivandaw": {
+    "id": "com.ivandaw.axolotl-pad",
+    "repo": "zhirnovcodes/axolotl-pad",
+    "asset": "axolotl-pad-daw.zip",
+    "release": "daw-build-12"
+  }
+}
