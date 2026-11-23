@@ -64,3 +64,20 @@ test('X removes a plugin at once; there is no right-hand panel', async ({ page }
     .click();
   await expect(page.locator('.ivd-node[data-node="n3"]')).toHaveCount(0);
 });
+
+// v1.2: the top panel repeats Master's Volume and Pan; both pairs show the same values.
+test('the top panel Master volume and pan follow the Master window', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await openDemo(page);
+  const top = page.getByRole('group', { name: 'Master' });
+  const win = page.locator('.ivd-node[data-node="master"]');
+  await top.getByRole('slider', { name: 'Master volume' }).fill('0.5');
+  const master = () =>
+    page.evaluate(() => window.__ivandaw?.project().nodes.find((n) => n.id === 'master'));
+  expect((await master())?.gain).toBe(0.5);
+  await expect(win.getByRole('slider', { name: 'Volume' })).toHaveValue('0.5');
+
+  await win.getByRole('slider', { name: 'Pan' }).fill('-0.5');
+  await expect(top.getByRole('slider', { name: 'Master pan' })).toHaveValue('-0.5');
+  expect((await master())?.pan).toBe(-0.5);
+});

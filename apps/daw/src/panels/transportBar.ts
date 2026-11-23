@@ -1,9 +1,11 @@
-// The top panel (v1.2): Play / Pause, Stop, BPM, beat readout on the left; Add plugin and Sticky note on the
-// right. Design: docs/v1.2-redesign.md, "3. Fixed panels".
+// The top panel (v1.2): Play / Pause, Stop, BPM, beat readout and a copy of Master's Volume / Pan on the left;
+// Add plugin and Sticky note on the right. Design: docs/v1.2-redesign.md, "3. Fixed panels".
 
 import { effect } from '@preact/signals-core';
 import type { MountUi } from '../contracts/ui';
-import { addNote, pause, play, setBpm, stop } from '../store/actions';
+import { CTL_GAIN, CTL_PAN } from '../model/control';
+import { armValid, GAIN_MAX, MASTER_ID } from '../model/project';
+import { addNote, pause, play, setBpm, setGain, setPan, stop } from '../store/actions';
 import { deps, mode, playing, project } from '../store/store';
 import { addMenuOpen } from './addMenu';
 import { formatBpm, parseBpm, stepBpm } from './bpm';
@@ -35,6 +37,29 @@ export const mountTransportBar: MountUi = (root) => {
   const beat = h('span', 'ivp-beat');
   beat.setAttribute('aria-label', 'Position, bar.beat');
 
+  // Master's Volume and Pan, the same values as the sliders under the Master window.
+  const master = h('div', 'ivp-master');
+  master.setAttribute('role', 'group');
+  master.setAttribute('aria-label', 'Master');
+  const masterRange = (label: string, min: number, max: number): HTMLInputElement => {
+    const row = h('label', 'ivp-master-row');
+    const input = h('input', 'w95-range');
+    input.type = 'range';
+    input.min = String(min);
+    input.max = String(max);
+    input.step = '0.01';
+    input.setAttribute('aria-label', `Master ${label.toLowerCase()}`);
+    row.append(h('span', '', label), input);
+    master.append(row);
+    return input;
+  };
+  master.append(h('span', 'ivp-master-cap', 'Master'));
+  const masterVol = masterRange('Volume', 0, GAIN_MAX);
+  const masterPan = masterRange('Pan', -1, 1);
+  masterVol.addEventListener('input', () => setGain(MASTER_ID, Number(masterVol.value)));
+  masterPan.addEventListener('input', () => setPan(MASTER_ID, Number(masterPan.value)));
+  masterPan.addEventListener('dblclick', () => setPan(MASTER_ID, 0));
+
   const iconBtn = (label: string, icon: string): HTMLButtonElement => {
     const b = h('button', 'ivp-icon-btn');
     b.type = 'button';
@@ -48,7 +73,17 @@ export const mountTransportBar: MountUi = (root) => {
   addBtn.dataset.ivpAdd = '';
   const noteBtn = iconBtn('Sticky note', ICON_STICKY_NOTE);
   noteBtn.dataset.ivpNote = '';
-  bar.append(playBtn, stopBtn, bpmWrap, beat, h('span', 'ivp-spacer'), addBtn, noteBtn);
+  bar.append(
+    playBtn,
+    stopBtn,
+    bpmWrap,
+    beat,
+    h('span', 'ivp-sep'),
+    master,
+    h('span', 'ivp-spacer'),
+    addBtn,
+    noteBtn,
+  );
   // Play-only (v1.1): nothing can be added.
   addBtn.hidden = mode.peek() === 'play';
   noteBtn.hidden = mode.peek() === 'play';
@@ -125,6 +160,18 @@ export const mountTransportBar: MountUi = (root) => {
     effect(() => {
       const bpm = project.value.transport.bpm;
       if (document.activeElement !== bpmInput) bpmInput.value = formatBpm(bpm);
+    }),
+    effect(() => {
+      const p = project.value;
+      const m = p.nodes.find((n) => n.id === MASTER_ID);
+      if (!m) return;
+      if (Number(masterVol.value) !== m.gain) masterVol.value = String(m.gain);
+      if (Number(masterPan.value) !== m.pan) masterPan.value = String(m.pan);
+      // An ARM link drives it: like the window's sliders, these show the resting value and wait.
+      const bound = (port: string) =>
+        (p.arms ?? []).some((a) => armValid(a) && a.to.node === MASTER_ID && a.target === port);
+      masterVol.disabled = bound(CTL_GAIN);
+      masterPan.disabled = bound(CTL_PAN);
     }),
     effect(() => {
       const s = deps.value.scheduler.state.value;

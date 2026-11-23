@@ -24,6 +24,12 @@ export const PANELS_CSS = `
 .ivp-bpm input::-webkit-inner-spin-button, .ivp-bpm input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .ivp-beat { min-width: 48px; height: 21px; box-sizing: border-box; padding: 3px 6px; box-shadow: var(--w95-sunken); }
 .ivp-spacer { flex: 1; }
+.ivp-master { display: grid; grid-template-columns: auto; gap: 2px; width: 220px; }
+.ivp-master-cap { text-transform: uppercase; line-height: 13px; }
+.ivp-master-row { display: flex; align-items: center; gap: 6px; text-transform: uppercase; }
+.ivp-master-row span { width: 56px; flex: none; }
+.ivp-master-row input { flex: 1; min-width: 0; }
+.ivp-master-row input:disabled { opacity: 0.4; }
 .ivp-prow { height: var(--row, 24px); display: grid; grid-template-columns: 82px 1fr 52px; align-items: center; gap: 6px; }
 .ivp-pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ivp-pctl { display: flex; align-items: center; gap: 4px; min-width: 0; }
