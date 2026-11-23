@@ -6,7 +6,7 @@ import { drag, openDemo, portDot } from './helpers';
 test('play-only locks the wiring, keeps moving, on / off, volume, pan and BPM', async ({
   page,
 }) => {
-  await openDemo(page, '/play_only?project=sine');
+  await openDemo(page, '/?project=sine&mode=play_only');
   expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('play');
   await expect(page.locator('.ivd-play-tag')).toHaveText('Play only');
   await expect(page.getByRole('button', { name: 'Add plugin' })).toBeDisabled();
@@ -59,10 +59,16 @@ test('play-only locks the wiring, keeps moving, on / off, volume, pan and BPM', 
   expect(changed?.transport.bpm).toBe(140);
 });
 
-test('?play_only works too, and the plain page stays editable', async ({ page }) => {
-  await openDemo(page, '/?project=sine&play_only');
-  expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('play');
-  await openDemo(page, '/?project=sine');
-  expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('edit');
+test('?mode=normal and no mode are editable; old flags no longer switch modes', async ({
+  page,
+}) => {
+  for (const path of [
+    '/?project=sine&mode=normal',
+    '/?project=sine',
+    '/?project=sine&play_only=true',
+  ]) {
+    await openDemo(page, path);
+    expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('edit');
+  }
   await expect(page.getByRole('button', { name: 'Add plugin' })).toBeEnabled();
 });

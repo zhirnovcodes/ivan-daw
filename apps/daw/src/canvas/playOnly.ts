@@ -5,14 +5,15 @@
 
 import type { Effect, Target } from './gesture';
 
-export type Mode = 'edit' | 'play';
+/** 'dev' is edit mode plus the preset panel; the canvas treats it as edit. */
+export type Mode = 'edit' | 'play' | 'dev';
 
 /**
  * What a pointer-down becomes in this mode, or undefined to ignore it.
  * In play mode no connector starts a cable and no cable can be picked.
  */
 export function playTarget(mode: Mode, t: Target): Target | undefined {
-  if (mode === 'edit') return t;
+  if (mode !== 'play') return t;
   switch (t.kind) {
     case 'outPort':
     case 'armOut':
@@ -27,7 +28,7 @@ export function playTarget(mode: Mode, t: Target): Target | undefined {
 
 /** Whether a canvas effect may run in this mode. */
 export function permits(mode: Mode, e: Effect): boolean {
-  if (mode === 'edit') return true;
+  if (mode !== 'play') return true;
   switch (e.type) {
     case 'removeNode':
     case 'disconnect':

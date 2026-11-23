@@ -16,6 +16,7 @@ import {
 } from 'ivandaw-core';
 import type { Engine, LoadedNode } from '../contracts/engine';
 import type { Catalog, CatalogEntry } from '../model/catalog';
+import { restoreState } from '../model/pluginState';
 import { type GraphNode, MASTER_ID } from '../model/project';
 import { setNodeStatus } from '../store/actions';
 import { deps, project } from '../store/store';
@@ -34,6 +35,10 @@ export interface EngineOptions {
   createContext?: () => AudioContext;
   /** Called for every `host.notify()` and every load error, after the console line. The canvas shows it as a toast. */
   onNotify?: (node: string, level: NotifyLevel, message: string) => void;
+  /** Base URL that saved state file paths are relative to. Default: `import.meta.env.BASE_URL`. */
+  stateBase?: string;
+  /** Fetches saved state files. Default: `fetch`. */
+  fetchFn?: typeof fetch;
 }
 
 export interface LiveEngine extends Engine {
@@ -173,6 +178,26 @@ export function createEngine(opts: EngineOptions): LiveEngine {
             source: 'host',
           })),
         );
+      }
+      // A saved state (dev-mode Save) goes in before the node counts as ready. A bad one is reported,
+      // and the plugin keeps its default state.
+      if (now.state) {
+        try {
+          const state = await restoreState(
+            now.state,
+            opts.stateBase ?? import.meta.env.BASE_URL,
+            opts.fetchFn,
+          );
+          // Removed while the files loaded: nothing to restore into.
+          if (live.get(id)?.instance !== instance) return;
+          await instance.setState(state);
+        } catch (e) {
+          notify(
+            id,
+            'warning',
+            `saved state not restored: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
       }
       setNodeStatus(id, 'ready');
     } catch (e) {

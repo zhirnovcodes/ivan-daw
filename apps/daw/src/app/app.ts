@@ -11,8 +11,9 @@ import { mountCanvas, setCanvasServices, showToast } from '../canvas';
 import type { IvanDawTestHook } from '../contracts/testHook';
 import { createEngine, type LiveEngine } from '../engine/engine';
 import { type Catalog, fetchCatalog, manifestsFrom } from '../model/catalog';
+import { fetchPresets, isLocalHost } from '../model/presets';
 import { fetchProject } from '../model/project';
-import { mountAddMenu, mountTransportBar, setPanelServices } from '../panels';
+import { mountAddMenu, mountPresetPanel, mountTransportBar, setPanelServices } from '../panels';
 import { ensureW95 } from '../panels/w95';
 import { createRouter, type LiveRouter } from '../router/router';
 import { createScheduler, type LiveScheduler } from '../scheduler/scheduler';
@@ -20,7 +21,7 @@ import { loadProject, play, stop } from '../store/actions';
 import { camera, mode, nodeStatus, project, provide, uiSlots } from '../store/store';
 import { readMode } from './mode';
 import { type Mounted, syncPluginUis } from './pluginUi';
-import { projectPath } from './projectUrl';
+import { openPath } from './projectUrl';
 
 /** Half a node box, so `+ Add` centres the new box rather than its corner. */
 const NODE_HALF = { x: 90, y: 40 };
@@ -53,7 +54,12 @@ function el(tag: string, id: string, parent: HTMLElement): HTMLElement {
 }
 
 /** Builds the layout. `#app` keeps the plain "IvanDAW" title the smoke test looks for. */
-function layout(): { bar: HTMLElement; canvas: HTMLElement; menu: HTMLElement } {
+function layout(): {
+  shell: HTMLElement;
+  bar: HTMLElement;
+  canvas: HTMLElement;
+  menu: HTMLElement;
+} {
   ensureW95();
   const style = document.createElement('style');
   style.textContent = CSS;
@@ -66,7 +72,7 @@ function layout(): { bar: HTMLElement; canvas: HTMLElement; menu: HTMLElement } 
   const bar = el('div', 'ivd-bar', top);
   const canvas = el('div', 'ivd-canvas', shell);
   const menu = el('div', 'ivd-menu', document.body);
-  return { bar, canvas, menu };
+  return { shell, bar, canvas, menu };
 }
 
 async function loadCatalog(): Promise<Catalog> {
@@ -79,15 +85,23 @@ async function loadCatalog(): Promise<Catalog> {
 }
 
 export async function boot(): Promise<App> {
-  mode.value = readMode(location);
+  // Development mode needs the dev server's preset routes and works only on localhost; anywhere
+  // else ?mode=dev opens normal mode.
+  const asked = readMode(location.search);
+  const devRefused = asked === 'dev' && !(import.meta.env.DEV && isLocalHost(location.hostname));
+  mode.value = devRefused ? 'edit' : asked;
   const ui = layout();
+  if (devRefused) showToast('Development mode works only on localhost');
   const catalog = await loadCatalog();
   provide({ manifests: manifestsFrom(catalog) });
 
+  const base = import.meta.env.BASE_URL;
   try {
-    loadProject(await fetchProject(`${import.meta.env.BASE_URL}${projectPath(location.search)}`));
+    const { path, missing } = await openPath(location.search, () => fetchPresets(base));
+    if (missing !== undefined) showToast(`No saved preset "${missing}"`);
+    loadProject(await fetchProject(`${base}${path}`));
   } catch (e) {
-    showToast(`Demo project failed to load: ${e instanceof Error ? e.message : String(e)}`);
+    showToast(`Project failed to load: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   const notify = (node: string, message: string): void => showToast(`${node}: ${message}`);
@@ -126,12 +140,13 @@ export async function boot(): Promise<App> {
   });
 
   mountTransportBar(ui.bar);
-  if (mode.value === 'play') {
+  if (mode.value !== 'edit') {
     const tag = document.createElement('span');
     tag.className = 'ivd-play-tag';
-    tag.textContent = 'Play only';
+    tag.textContent = mode.value === 'play' ? 'Play only' : 'Development';
     ui.bar.querySelector('.ivp-spacer')?.before(tag);
   }
+  if (mode.value === 'dev') mountPresetPanel(ui.shell);
   mountCanvas(ui.canvas);
   mountAddMenu(ui.menu);
   // Plugins with a manifest.ui show their own UI inside their node box.

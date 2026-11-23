@@ -82,6 +82,39 @@ export interface GraphNode {
   bypass: boolean; // v1: always false (no UI yet)
   params: Record<string, number>; // normalized 0..1, keyed by ParameterInfo.id; only values the user changed
   uiHidden?: boolean; // v1.1.2: the plugin's own UI is folded away (`-` on the box); missing = shown
+  state?: SavedState; // 2026-11-23: the plugin's own state (getState), written by dev-mode Save
+}
+
+/**
+ * A plugin's `PluginState` as stored in a project file. Binary files can't go in JSON, so each
+ * `files` entry is a path (relative to the app's base URL) the Blob was stored at.
+ */
+export interface SavedState {
+  pluginId: string;
+  pluginVersion: string;
+  data: unknown;
+  files?: Record<string, string>;
+}
+
+function readState(v: unknown, where: string): SavedState {
+  if (!isObject(v) || typeof v.pluginId !== 'string' || typeof v.pluginVersion !== 'string') {
+    throw new ProjectError(`${where}: expected { pluginId, pluginVersion, data }`);
+  }
+  const out: SavedState = {
+    pluginId: v.pluginId,
+    pluginVersion: v.pluginVersion,
+    data: v.data ?? null,
+  };
+  if (v.files !== undefined) {
+    if (!isObject(v.files)) throw new ProjectError(`${where}.files: expected an object`);
+    const files: Record<string, string> = {};
+    for (const [k, f] of Object.entries(v.files)) {
+      if (typeof f !== 'string') throw new ProjectError(`${where}.files.${k}: expected a path`);
+      files[k] = f;
+    }
+    out.files = files;
+  }
+  return out;
 }
 
 export interface PortRef {
@@ -158,6 +191,9 @@ function readNode(v: unknown, i: number): GraphNode {
     bypass: v.bypass === true,
     params,
     ...(v.uiHidden === true ? { uiHidden: true } : {}),
+    ...(v.state !== undefined && v.state !== null
+      ? { state: readState(v.state, `${where}.state`) }
+      : {}),
   };
 }
 

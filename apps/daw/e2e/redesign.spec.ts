@@ -31,7 +31,7 @@ test('a sticky note: create, format, move, delete', async ({ page }) => {
 });
 
 test('play-only shows notes but cannot add or edit them', async ({ page }) => {
-  await openDemo(page, '/play_only');
+  await openDemo(page, '/?mode=play_only');
   await expect(page.getByRole('button', { name: 'Sticky note' })).toBeDisabled();
 });
 

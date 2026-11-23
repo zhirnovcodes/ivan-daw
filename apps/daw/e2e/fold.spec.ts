@@ -37,7 +37,7 @@ test('hide and show Beatality keeps its UI and its state', async ({ page }) => {
 });
 
 test('the button works in play-only mode too', async ({ page }) => {
-  await openDemo(page, '/?play_only');
+  await openDemo(page, '/?mode=play_only');
   const node = page.locator('.ivd-node[data-node="n2"]');
   await node.getByRole('button', { name: 'Hide plugin' }).click();
   await expect(page.locator('.ivd-ui[data-ui="n2"]')).toBeHidden();

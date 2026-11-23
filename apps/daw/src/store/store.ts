@@ -3,6 +3,7 @@
 // Engine, router and scheduler react to `project` with effect().
 
 import { computed, type ReadonlySignal, signal } from '@preact/signals-core';
+import type { Mode } from '../canvas/playOnly';
 import type { Router } from '../contracts/router';
 import type { Scheduler } from '../contracts/scheduler';
 import { createStubRouter, createStubScheduler } from '../contracts/stubs';
@@ -49,8 +50,11 @@ export const selection = signal<Selection>({});
 export const camera = signal<Camera>({ x: 0, y: 0, z: 1 });
 /** v1.2: the sticky note whose text is open in its editor, if any. View state, not saved. */
 export const editingNote = signal<string | undefined>(undefined);
-/** 'play' = play-only (v1.1): the graph is locked, the sound stays playable. Set once at boot. */
-export const mode = signal<'edit' | 'play'>('edit');
+/**
+ * 'play' = play-only (v1.1): the wiring is locked, the sound stays playable.
+ * 'dev' = edit mode plus the preset panel (dev server only). Set once at boot.
+ */
+export const mode = signal<Mode>('edit');
 /**
  * Node id → the element inside its box where the plugin's own UI goes (v1.1).
  * The canvas writes it through `setUiSlot`; the app shell mounts plugin UIs into these.

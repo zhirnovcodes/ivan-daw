@@ -24,7 +24,7 @@ test('the demo plays Beatality from a held note', async ({ page }) => {
 
 test('in play-only, ARM connectors are locked', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await openDemo(page, '/play_only');
+  await openDemo(page, '/?mode=play_only');
   await drag(page, armDot('n3', 1, 'out'), armDot('n2', 1, 'in'));
   await expect(page.locator('.ivd-conn')).toHaveCount(0);
   expect(await page.evaluate(() => window.__ivandaw?.project().arms ?? [])).toEqual([]);

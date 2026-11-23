@@ -1,4 +1,4 @@
-// @types/node is not a dependency of this workspace, so declare just what plugins-catalog.ts uses.
+// @types/node is not a dependency of this workspace, so declare just what the vite/ plugins use.
 declare module 'node:fs' {
   export interface Stats {
     isFile(): boolean;
@@ -11,7 +11,7 @@ declare module 'node:fs' {
   export function mkdirSync(path: string, options?: { recursive?: boolean }): void;
   export function mkdtempSync(prefix: string): string;
   export function rmSync(path: string, options?: { recursive?: boolean; force?: boolean }): void;
-  export function writeFileSync(path: string, data: string): void;
+  export function writeFileSync(path: string, data: string | Uint8Array): void;
   export function createReadStream(path: string): { pipe(res: unknown): unknown };
 }
 declare module 'node:path' {
@@ -31,6 +31,14 @@ declare module 'node:child_process' {
     args: string[],
     options: { cwd: string; stdio: 'inherit' },
   ): ChildProcess;
+}
+declare module 'node:crypto' {
+  export function createHash(alg: 'sha256'): {
+    update(data: Uint8Array): { digest(enc: 'hex'): string };
+  };
+}
+declare module 'node:os' {
+  export function tmpdir(): string;
 }
 interface ImportMeta {
   readonly dirname: string;
