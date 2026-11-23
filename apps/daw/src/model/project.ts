@@ -16,7 +16,25 @@ export interface Project {
   transport: { bpm: number; numerator: number; denominator: number }; // v1: 120, 4, 4
   nodes: GraphNode[];
   cables: Cable[];
+  /** v1.2 sticky notes, drawn above everything. Missing = none. */
+  notes?: Note[];
 }
+
+/** v1.2: a sticky note. Text uses only `**bold**` and `<https://…>` links (see `noteText.ts`). */
+export interface Note {
+  id: string; // 's1', 's2'…
+  x: number; // world px, top-left of the note window
+  y: number;
+  w: number; // world px, the whole window
+  h: number;
+  text: string;
+}
+
+export const NOTE_MIN_W = 120;
+export const NOTE_MIN_H = 80;
+export const NOTE_DEFAULT = { w: 300, h: 180 } as const;
+/** Longest note text kept, in characters. */
+export const NOTE_TEXT_MAX = 20000;
 
 export interface GraphNode {
   id: string; // 'n1', 'n2'…; Master is always 'master'
@@ -107,6 +125,22 @@ function readNode(v: unknown, i: number): GraphNode {
   };
 }
 
+function readNote(v: unknown, i: number): Note {
+  const where = `notes[${i}]`;
+  if (!isObject(v)) throw new ProjectError(`${where}: expected an object`);
+  if (typeof v.id !== 'string' || v.id === '')
+    throw new ProjectError(`${where}.id: expected a string`);
+  if (!isNum(v.x) || !isNum(v.y)) throw new ProjectError(`${where}: expected numeric x and y`);
+  return {
+    id: v.id,
+    x: v.x,
+    y: v.y,
+    w: isNum(v.w) ? Math.max(NOTE_MIN_W, v.w) : NOTE_DEFAULT.w,
+    h: isNum(v.h) ? Math.max(NOTE_MIN_H, v.h) : NOTE_DEFAULT.h,
+    text: typeof v.text === 'string' ? v.text.slice(0, NOTE_TEXT_MAX) : '',
+  };
+}
+
 /**
  * Reads untrusted JSON into a Project. Fills defaults (gain 1, pan 0, bypass false, params {}),
  * clamps values into range, and adds Master if it is missing. Throws on anything else that is wrong:
@@ -158,7 +192,23 @@ export function parseProject(raw: unknown): Project {
     return { id: c.id, from, to };
   });
 
-  return { format: 'ivandaw.project', version: 1, transport, nodes, cables };
+  if (raw.notes !== undefined && !Array.isArray(raw.notes))
+    throw new ProjectError('project.notes: expected an array');
+  const notes = (raw.notes ?? []).map(readNote);
+  const noteIds = new Set<string>();
+  for (const n of notes) {
+    if (noteIds.has(n.id)) throw new ProjectError(`duplicate note id "${n.id}"`);
+    noteIds.add(n.id);
+  }
+
+  return {
+    format: 'ivandaw.project',
+    version: 1,
+    transport,
+    nodes,
+    cables,
+    ...(notes.length > 0 ? { notes } : {}),
+  };
 }
 
 /** Fetches and parses a project file, e.g. `/projects/demo.json`. */

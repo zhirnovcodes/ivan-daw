@@ -4,5 +4,5 @@ import { expect, test } from '@playwright/test';
 test('the dev server serves the app', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle('IvanDAW');
-  await expect(page.locator('#app')).toHaveText('IvanDAW');
+  await expect(page.locator('#app')).toHaveText('IvanDAW'); // kept for screen readers, hidden since v1.2
 });

@@ -45,6 +45,8 @@ export const selection = signal<Selection>({});
  * View state: not part of the project, not saved.
  */
 export const camera = signal<Camera>({ x: 0, y: 0, z: 1 });
+/** v1.2: the sticky note whose text is open in its editor, if any. View state, not saved. */
+export const editingNote = signal<string | undefined>(undefined);
 /** 'play' = play-only (v1.1): the graph is locked, the sound stays playable. Set once at boot. */
 export const mode = signal<'edit' | 'play'>('edit');
 /**

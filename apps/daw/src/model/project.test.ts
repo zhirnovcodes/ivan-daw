@@ -120,3 +120,39 @@ describe('uiHidden (v1.1.2)', () => {
     expect('uiHidden' in (p.nodes[1] ?? {})).toBe(false);
   });
 });
+
+describe('notes (v1.2)', () => {
+  const withNotes = (notes: unknown): unknown => ({ ...(sine() as object), notes });
+
+  it('old projects load with no notes', () => {
+    expect(parseProject(sine()).notes).toBeUndefined();
+  });
+
+  it('reads notes, fills size defaults and keeps minimum sizes', () => {
+    const p = parseProject(
+      withNotes([
+        { id: 's1', x: 10, y: 20, w: 400, h: 200, text: 'Hello **world**' },
+        { id: 's2', x: 0, y: 0, text: 'no size' },
+        { id: 's3', x: 0, y: 0, w: 5, h: 5 },
+      ]),
+    );
+    expect(p.notes).toEqual([
+      { id: 's1', x: 10, y: 20, w: 400, h: 200, text: 'Hello **world**' },
+      { id: 's2', x: 0, y: 0, w: 300, h: 180, text: 'no size' },
+      { id: 's3', x: 0, y: 0, w: 120, h: 80, text: '' },
+    ]);
+  });
+
+  it('refuses bad notes', () => {
+    expect(() => parseProject(withNotes({}))).toThrow(/notes/);
+    expect(() => parseProject(withNotes([{ id: 's1', x: 'a', y: 0 }]))).toThrow(/notes\[0\]/);
+    expect(() =>
+      parseProject(
+        withNotes([
+          { id: 's1', x: 0, y: 0 },
+          { id: 's1', x: 1, y: 1 },
+        ]),
+      ),
+    ).toThrow(/duplicate note/);
+  });
+});

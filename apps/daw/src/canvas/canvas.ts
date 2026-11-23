@@ -9,6 +9,7 @@ import type { MountUi } from '../contracts/ui';
 import { mainAudioOut, type PortsManifest } from '../model/catalog';
 import { CTL_GAIN, CTL_PAN, controlLabel, isControlPort } from '../model/control';
 import { GAIN_MAX, MASTER_PLUGIN, type PortRef } from '../model/project';
+import { ensureW95 } from '../panels/w95';
 import {
   connect,
   disconnect,
@@ -62,17 +63,17 @@ import {
   reduce,
   type Target,
 } from './gesture';
+import { mountNotes } from './notes';
 import { permits, playTarget } from './playOnly';
 import { canvasServices } from './services';
 import { CANVAS_CSS } from './styles';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const TOAST_MS = 2000;
-/** Grid dot spacing at 100%, as in styles.ts. */
-const GRID_PX = 24;
 
 let styleEl: HTMLStyleElement | undefined;
 function ensureStyles(): void {
+  ensureW95();
   if (styleEl?.isConnected) return;
   styleEl = document.createElement('style');
   styleEl.textContent = CANVAS_CSS;
@@ -152,12 +153,27 @@ export const mountCanvas: MountUi = (root) => {
   tempPath.style.display = 'none';
   svg.append(cableLayer, tempPath);
   const nodeLayer = h('div', 'ivd-nodes');
+  // v1.2 layers, bottom to top: plugins and cables (reordered in T5), then sticky notes.
+  const noteLayer = h('div', 'ivd-notes');
   const world = h('div', 'ivd-world');
-  world.append(svg, nodeLayer);
-  const zoomLabel = h('button', 'ivd-zoom', '100%');
-  zoomLabel.type = 'button';
-  zoomLabel.title = 'Zoom. Click for 100%';
-  canvas.append(world, zoomLabel);
+  world.append(svg, nodeLayer, noteLayer);
+  // v1.2 zoom panel, bottom-left: − · % (click = 100%) · +.
+  const zoomPanel = h('div', 'ivd-zoombar');
+  const zoomBtn = (cls: string, text: string, label: string): HTMLButtonElement => {
+    const b = h('button', cls, text);
+    b.type = 'button';
+    b.title = label;
+    b.setAttribute('aria-label', label);
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    zoomPanel.append(b);
+    return b;
+  };
+  const zoomOut = zoomBtn('ivd-zoom-step', '−', 'Zoom out');
+  const zoomLabel = zoomBtn('ivd-zoom', '100%', 'Zoom. Click for 100%');
+  const zoomIn = zoomBtn('ivd-zoom-step', '+', 'Zoom in');
+  zoomPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
+  zoomPanel.addEventListener('wheel', (e) => e.stopPropagation());
+  canvas.append(world, zoomPanel);
   root.appendChild(canvas);
 
   const views = new Map<string, NodeView>();
@@ -459,14 +475,13 @@ export const mountCanvas: MountUi = (root) => {
     { passive: false },
   );
 
-  zoomLabel.addEventListener('pointerdown', (e) => e.stopPropagation());
   zoomLabel.addEventListener('click', () => resetZoom(viewCenter(), fit));
+  zoomOut.addEventListener('click', () => zoomAt(viewCenter(), -KEY_STEP, fit));
+  zoomIn.addEventListener('click', () => zoomAt(viewCenter(), KEY_STEP, fit));
 
   const stopCamera = effect(() => {
     const c = camera.value;
     world.style.transform = `translate(${-c.x * c.z}px, ${-c.y * c.z}px) scale(${c.z})`;
-    canvas.style.backgroundPosition = `${-c.x * c.z}px ${-c.y * c.z}px`;
-    canvas.style.backgroundSize = `${GRID_PX * c.z}px ${GRID_PX * c.z}px`;
     zoomLabel.textContent = `${Math.round(c.z * 100)}%`;
   });
 
@@ -570,6 +585,7 @@ export const mountCanvas: MountUi = (root) => {
       const row = h('label', 'ivd-foot-row');
       const input = document.createElement('input');
       input.type = 'range';
+      input.className = 'w95-range';
       input.min = String(min);
       input.max = String(max);
       input.step = '0.01';
@@ -723,10 +739,12 @@ export const mountCanvas: MountUi = (root) => {
     for (const fx of effects) run(fx);
   };
   document.addEventListener('keydown', onKey);
+  const stopNotes = mountNotes(noteLayer);
 
   return () => {
     stop();
     stopCamera();
+    stopNotes();
     document.removeEventListener('keydown', onKey);
     canvas.remove();
     for (const [id, v] of views) if (v.ui) setUiSlot(id, null);

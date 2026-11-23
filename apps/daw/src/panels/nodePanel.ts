@@ -51,7 +51,7 @@ function row(label: string): {
 }
 
 function slider(min: number, max: number, step: number): HTMLInputElement {
-  const s = h('input', '');
+  const s = h('input', 'w95-range');
   s.type = 'range';
   s.min = String(min);
   s.max = String(max);

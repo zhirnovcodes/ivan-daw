@@ -14,6 +14,11 @@ import {
   MASTER_ID,
   MASTER_IN,
   MASTER_PLUGIN,
+  NOTE_DEFAULT,
+  NOTE_MIN_H,
+  NOTE_MIN_W,
+  NOTE_TEXT_MAX,
+  type Note,
   newNode,
   type PortRef,
   type Project,
@@ -31,6 +36,7 @@ import {
 import {
   camera,
   deps,
+  editingNote,
   type NodeStatus,
   nodeErrors,
   nodeStatus,
@@ -45,6 +51,7 @@ export type ConnectResult = { ok: true; id: string } | { ok: false; reason: Refu
 // Id counters never go back, so a removed 'n3' is never confused with a new node.
 let nextNode = 1;
 let nextCable = 1;
+let nextNote = 1;
 
 const idNumber = (id: string, prefix: string): number => {
   const m = new RegExp(`^${prefix}(\\d+)$`).exec(id);
@@ -54,6 +61,7 @@ const idNumber = (id: string, prefix: string): number => {
 function bumpCounters(p: Project): void {
   for (const n of p.nodes) nextNode = Math.max(nextNode, idNumber(n.id, 'n') + 1);
   for (const c of p.cables) nextCable = Math.max(nextCable, idNumber(c.id, 'c') + 1);
+  for (const n of p.notes ?? []) nextNote = Math.max(nextNote, idNumber(n.id, 's') + 1);
 }
 
 function update(fn: (p: Project) => Project): void {
@@ -77,6 +85,7 @@ export function loadProject(p: Project): void {
   bumpCounters(p);
   project.value = p;
   selection.value = {};
+  editingNote.value = undefined;
   nodeStatus.value = { [MASTER_ID]: 'ready' };
   nodeErrors.value = {};
 }
@@ -288,4 +297,63 @@ export function setNodeStatus(id: string, status: NodeStatus, message?: string):
   nodeStatus.value = { ...nodeStatus.value, [id]: status };
   const { [id]: _old, ...rest } = nodeErrors.value;
   nodeErrors.value = status === 'error' ? { ...rest, [id]: message ?? 'unknown error' } : rest;
+}
+
+// v1.2 sticky notes. Design: docs/v1.2-redesign.md, "5. Sticky notes".
+
+function updateNote(id: string, fn: (n: Note) => Note): void {
+  const p = project.value;
+  const notes = p.notes ?? [];
+  const i = notes.findIndex((n) => n.id === id);
+  const note = notes[i];
+  if (!note) return;
+  const next = fn(note);
+  if (next === note) return;
+  const all = notes.slice();
+  all[i] = next;
+  project.value = { ...p, notes: all };
+}
+
+/** Adds an empty note with its top-left at (x, y) and opens it for editing. Returns its id. */
+export function addNote(x: number, y: number): string {
+  const id = `s${nextNote++}`;
+  const note: Note = { id, x, y, w: NOTE_DEFAULT.w, h: NOTE_DEFAULT.h, text: '' };
+  update((p) => ({ ...p, notes: [...(p.notes ?? []), note] }));
+  editingNote.value = id;
+  return id;
+}
+
+export function moveNote(id: string, x: number, y: number): void {
+  updateNote(id, (n) => (n.x === x && n.y === y ? n : { ...n, x, y }));
+}
+
+/** Sizes below the minimum are raised to it. */
+export function resizeNote(id: string, w: number, h: number): void {
+  const nw = Math.max(NOTE_MIN_W, Math.round(w));
+  const nh = Math.max(NOTE_MIN_H, Math.round(h));
+  updateNote(id, (n) => (n.w === nw && n.h === nh ? n : { ...n, w: nw, h: nh }));
+}
+
+export function setNoteText(id: string, text: string): void {
+  const t = text.slice(0, NOTE_TEXT_MAX);
+  updateNote(id, (n) => (n.text === t ? n : { ...n, text: t }));
+}
+
+/** Removes a note. The project loses its `notes` key when the last one goes. */
+export function removeNote(id: string): void {
+  const p = project.value;
+  const notes = p.notes ?? [];
+  if (!notes.some((n) => n.id === id)) return;
+  const rest = notes.filter((n) => n.id !== id);
+  if (rest.length > 0) project.value = { ...p, notes: rest };
+  else {
+    const { notes: _gone, ...without } = p;
+    project.value = without;
+  }
+  if (editingNote.value === id) editingNote.value = undefined;
+}
+
+/** Opens a note's text for editing, or closes the editor (`undefined`). View state only. */
+export function editNote(id: string | undefined): void {
+  editingNote.value = id;
 }

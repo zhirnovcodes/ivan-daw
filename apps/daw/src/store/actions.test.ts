@@ -6,19 +6,24 @@ import { type CatalogEntry, manifestsFrom } from '../model/catalog';
 import { emptyProject, MASTER_ID, type Project, parseProject } from '../model/project';
 import {
   addNode,
+  addNote,
   connect,
   disconnect,
   loadProject,
   moveNode,
+  moveNote,
   panCamera,
   pause,
   play,
   removeNode,
+  removeNote,
   resetZoom,
+  resizeNote,
   select,
   setBpm,
   setGain,
   setNodeStatus,
+  setNoteText,
   setPan,
   setParam,
   setUiHidden,
@@ -29,6 +34,7 @@ import {
   camera,
   defaultDeps,
   deps,
+  editingNote,
   nodeErrors,
   nodeStatus,
   playing,
@@ -421,5 +427,43 @@ describe('setUiHidden (v1.1.2)', () => {
     expect(project.value).toBe(same);
     setUiHidden(id, false);
     expect('uiHidden' in (project.value.nodes.find((n) => n.id === id) ?? {})).toBe(false);
+  });
+});
+
+describe('sticky notes (v1.2)', () => {
+  it('addNote adds a default-size empty note and opens it for editing', () => {
+    const id = addNote(100, 50);
+    expect(project.value.notes).toEqual([{ id, x: 100, y: 50, w: 300, h: 180, text: '' }]);
+    expect(editingNote.value).toBe(id);
+  });
+
+  it('ids continue past the loaded notes', () => {
+    loadProject({ ...demo(), notes: [{ id: 's7', x: 0, y: 0, w: 300, h: 180, text: '' }] });
+    expect(editingNote.value).toBeUndefined();
+    expect(addNote(0, 0)).toBe('s8');
+  });
+
+  it('move, resize (with minimum), text, and replace the project each time', () => {
+    const id = addNote(0, 0);
+    const before = project.value;
+    moveNote(id, 10, 20);
+    expect(project.value).not.toBe(before);
+    resizeNote(id, 50, 500.4);
+    setNoteText(id, '**hi**');
+    expect(project.value.notes?.[0]).toEqual({ id, x: 10, y: 20, w: 120, h: 500, text: '**hi**' });
+    const same = project.value;
+    moveNote(id, 10, 20);
+    setNoteText(id, '**hi**');
+    expect(project.value).toBe(same);
+  });
+
+  it('removeNote drops it, closes its editor, and drops the notes key when empty', () => {
+    const a = addNote(0, 0);
+    const b = addNote(1, 1);
+    removeNote(b);
+    expect(editingNote.value).toBeUndefined();
+    expect(project.value.notes?.map((n) => n.id)).toEqual([a]);
+    removeNote(a);
+    expect('notes' in project.value).toBe(false);
   });
 });

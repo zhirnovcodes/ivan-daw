@@ -10,7 +10,7 @@ test('Beatality loads from the catalog and shows its UI in its box', async ({ pa
   });
 
   await openDemo(page, '/?project=sine');
-  await page.getByRole('button', { name: '+ Add' }).click();
+  await page.getByRole('button', { name: 'Add plugin' }).click();
   await page.getByRole('menuitem', { name: /Beatality/ }).click();
 
   const id = await page.evaluate(

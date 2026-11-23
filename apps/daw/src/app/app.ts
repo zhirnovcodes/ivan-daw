@@ -4,7 +4,7 @@
 //   engine (loads plugins) · scheduler (clock) · router (cables, events) react to the store
 //   canvas + panels read signals and call actions
 //
-// Layout: [IvanDAW | transport bar] on top, canvas below, node panel on the right when a node is selected.
+// Layout (v1.2): the canvas fills the window; the top panel and the node panel float over it.
 
 import { effect } from '@preact/signals-core';
 import { mountCanvas, setCanvasServices, showToast } from '../canvas';
@@ -13,6 +13,7 @@ import { createEngine, type LiveEngine } from '../engine/engine';
 import { type Catalog, fetchCatalog, manifestsFrom } from '../model/catalog';
 import { fetchProject } from '../model/project';
 import { mountAddMenu, mountNodePanel, mountTransportBar, setPanelServices } from '../panels';
+import { ensureW95 } from '../panels/w95';
 import { createRouter, type LiveRouter } from '../router/router';
 import { createScheduler, type LiveScheduler } from '../scheduler/scheduler';
 import { loadProject, play, stop } from '../store/actions';
@@ -26,16 +27,17 @@ const NODE_HALF = { x: 90, y: 40 };
 
 const CSS = `
 html, body { margin: 0; height: 100%; overflow: hidden; }
-body { font: 13px system-ui, sans-serif; color: #000; background: #fff; }
-#ivd-shell { position: fixed; inset: 0; display: grid; grid-template-rows: 48px 1fr; grid-template-columns: 1fr auto; }
-#ivd-top { grid-column: 1 / 3; display: flex; align-items: stretch; border-bottom: 1px solid #000; }
-#app { display: flex; align-items: center; padding: 0 12px; font-weight: 700; border-right: 1px solid #000; }
+body { font: 13px/1.2 var(--w95-font); color: #000; background: var(--w95-desk); -webkit-font-smoothing: none; }
+#ivd-shell { position: fixed; inset: 0; --ivd-top-h: 88px; }
+#ivd-canvas { position: absolute; left: 0; right: 0; bottom: 0; top: var(--ivd-top-h); overflow: hidden; }
+#ivd-top { position: absolute; left: 16px; right: 16px; top: 16px; height: calc(var(--ivd-top-h) - 24px); box-sizing: border-box; z-index: 50; display: flex; align-items: stretch;
+  background: var(--w95-face); box-shadow: var(--w95-raised); padding: 2px; }
+#app { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 #ivd-bar { flex: 1; min-width: 0; }
-#ivd-bar .ivp-bar { border-bottom: 0; }
-#ivd-canvas { position: relative; overflow: hidden; min-width: 0; }
-#ivd-side { width: 260px; border-left: 1px solid #000; overflow-y: auto; }
+#ivd-bar .ivp-bar { background: transparent; }
+#ivd-side { position: absolute; right: 16px; top: var(--ivd-top-h); bottom: 16px; z-index: 50; width: 260px; overflow-y: auto; }
 #ivd-side.ivd-empty { display: none; }
-.ivd-play-tag { margin-left: 8px; padding: 1px 6px; border: 1px solid #000; border-radius: 4px; font-size: 11px; font-weight: 400; }
+.ivd-play-tag { margin-left: 8px; padding: 3px 6px; box-shadow: var(--w95-sunken); background: var(--w95-field); }
 `;
 
 export interface App {
@@ -54,6 +56,7 @@ function el(tag: string, id: string, parent: HTMLElement): HTMLElement {
 
 /** Builds the layout. `#app` keeps the plain "IvanDAW" title the smoke test looks for. */
 function layout(): { bar: HTMLElement; canvas: HTMLElement; side: HTMLElement; menu: HTMLElement } {
+  ensureW95();
   const style = document.createElement('style');
   style.textContent = CSS;
   document.head.append(style);
@@ -81,12 +84,6 @@ async function loadCatalog(): Promise<Catalog> {
 export async function boot(): Promise<App> {
   mode.value = readMode(location);
   const ui = layout();
-  if (mode.value === 'play') {
-    const tag = document.createElement('span');
-    tag.className = 'ivd-play-tag';
-    tag.textContent = 'Play only';
-    document.getElementById('app')?.append(tag);
-  }
   const catalog = await loadCatalog();
   provide({ manifests: manifestsFrom(catalog) });
 
@@ -129,6 +126,12 @@ export async function boot(): Promise<App> {
   setCanvasServices({ parameters: (id) => engine.get(id)?.instance.parameters() ?? [] });
 
   mountTransportBar(ui.bar);
+  if (mode.value === 'play') {
+    const tag = document.createElement('span');
+    tag.className = 'ivd-play-tag';
+    tag.textContent = 'Play only';
+    ui.bar.querySelector('.ivp-spacer')?.before(tag);
+  }
   mountCanvas(ui.canvas);
   mountNodePanel(ui.side);
   mountAddMenu(ui.menu);

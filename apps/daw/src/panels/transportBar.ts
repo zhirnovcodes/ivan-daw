@@ -1,14 +1,17 @@
-// The transport bar: Play / Pause, Stop, BPM, beat readout, + Add. Tech design: "Panels".
+// The top panel (v1.2): Play / Pause, Stop, BPM, beat readout on the left; Add plugin and Sticky note on the
+// right. Design: docs/v1.2-redesign.md, "3. Fixed panels".
 
 import { effect } from '@preact/signals-core';
 import type { MountUi } from '../contracts/ui';
-import { pause, play, setBpm, stop } from '../store/actions';
+import { addNote, pause, play, setBpm, stop } from '../store/actions';
 import { deps, mode, playing, project } from '../store/store';
 import { addMenuOpen } from './addMenu';
-import { parseBpm, stepBpm } from './bpm';
+import { formatBpm, parseBpm, stepBpm } from './bpm';
 import { ensureStyles, h } from './dom';
 import { formatBeat } from './format';
+import { ICON_ADD_PLUGIN, ICON_STICKY_NOTE } from './icons';
 import { shouldTogglePlay } from './keys';
+import { panelServices } from './services';
 
 export const mountTransportBar: MountUi = (root) => {
   ensureStyles();
@@ -16,6 +19,7 @@ export const mountTransportBar: MountUi = (root) => {
   bar.setAttribute('role', 'toolbar');
   bar.setAttribute('aria-label', 'Transport');
 
+  // Left: transport. Right: Add plugin, Sticky note (v1.2 top panel).
   const playBtn = h('button', 'ivp-play', 'Play');
   playBtn.type = 'button';
   const stopBtn = h('button', 'ivp-stop', 'Stop');
@@ -23,21 +27,31 @@ export const mountTransportBar: MountUi = (root) => {
 
   const bpmWrap = h('label', 'ivp-bpm');
   const bpmInput = h('input', '');
-  bpmInput.type = 'number';
-  bpmInput.min = '40';
-  bpmInput.max = '240';
-  bpmInput.step = '1';
+  bpmInput.type = 'text';
+  bpmInput.inputMode = 'decimal';
   bpmInput.setAttribute('aria-label', 'BPM');
   bpmWrap.append('BPM', bpmInput);
 
   const beat = h('span', 'ivp-beat');
   beat.setAttribute('aria-label', 'Position, bar.beat');
-  const addBtn = h('button', '', '+ Add');
-  addBtn.type = 'button';
+
+  const iconBtn = (label: string, icon: string): HTMLButtonElement => {
+    const b = h('button', 'ivp-icon-btn');
+    b.type = 'button';
+    b.setAttribute('aria-label', label);
+    const img = h('span', 'ivp-icon');
+    img.innerHTML = icon; // our own static SVG from icons.ts
+    b.append(img, h('span', 'ivp-caption', label));
+    return b;
+  };
+  const addBtn = iconBtn('Add plugin', ICON_ADD_PLUGIN);
   addBtn.dataset.ivpAdd = '';
-  bar.append(playBtn, stopBtn, bpmWrap, beat, h('span', 'ivp-spacer'), addBtn);
+  const noteBtn = iconBtn('Sticky note', ICON_STICKY_NOTE);
+  noteBtn.dataset.ivpNote = '';
+  bar.append(playBtn, stopBtn, bpmWrap, beat, h('span', 'ivp-spacer'), addBtn, noteBtn);
   // Play-only (v1.1): nothing can be added.
   addBtn.hidden = mode.peek() === 'play';
+  noteBtn.hidden = mode.peek() === 'play';
   root.appendChild(bar);
 
   // Buttons give focus back to the page, so Space always toggles Play afterwards.
@@ -53,6 +67,11 @@ export const mountTransportBar: MountUi = (root) => {
     stop();
     stopBtn.blur();
   });
+  noteBtn.addEventListener('click', () => {
+    const c = panelServices().canvasCenter();
+    addNote(c.x, c.y);
+    noteBtn.blur();
+  });
   addBtn.addEventListener('click', () => {
     addMenuOpen.value = !addMenuOpen.value;
   });
@@ -60,7 +79,7 @@ export const mountTransportBar: MountUi = (root) => {
   const commit = (): void => {
     const v = parseBpm(bpmInput.value);
     if (v !== undefined) setBpm(v);
-    bpmInput.value = String(project.peek().transport.bpm); // show the clamped / stored value
+    bpmInput.value = formatBpm(project.peek().transport.bpm); // show the clamped / stored value
   };
   bpmInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -70,10 +89,10 @@ export const mountTransportBar: MountUi = (root) => {
       e.preventDefault();
       const from = parseBpm(bpmInput.value) ?? project.peek().transport.bpm;
       const next = stepBpm(from, e.key === 'ArrowUp' ? 1 : -1, e.shiftKey);
-      bpmInput.value = String(next);
+      bpmInput.value = formatBpm(next);
       setBpm(next);
     } else if (e.key === 'Escape') {
-      bpmInput.value = String(project.peek().transport.bpm);
+      bpmInput.value = formatBpm(project.peek().transport.bpm);
       bpmInput.blur();
     }
   });
@@ -105,7 +124,7 @@ export const mountTransportBar: MountUi = (root) => {
     }),
     effect(() => {
       const bpm = project.value.transport.bpm;
-      if (document.activeElement !== bpmInput) bpmInput.value = String(bpm);
+      if (document.activeElement !== bpmInput) bpmInput.value = formatBpm(bpm);
     }),
     effect(() => {
       const s = deps.value.scheduler.state.value;

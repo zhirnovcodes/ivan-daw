@@ -17,3 +17,6 @@ export function parseBpm(text: string): number | undefined {
 export function stepBpm(current: number, dir: 1 | -1, shift: boolean): number {
   return clampBpm(Math.round((current + dir * (shift ? 10 : 1)) * 100) / 100);
 }
+
+/** How the BPM field shows a tempo (v1.2): always two decimals, e.g. `100.00`. */
+export const formatBpm = (bpm: number): string => bpm.toFixed(2);

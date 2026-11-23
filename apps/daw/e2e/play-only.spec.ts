@@ -6,7 +6,7 @@ test('play-only locks the graph, keeps volume, pan and BPM', async ({ page }) =>
   await openDemo(page, '/play_only?project=sine');
   expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('play');
   await expect(page.locator('.ivd-play-tag')).toHaveText('Play only');
-  await expect(page.getByRole('button', { name: '+ Add' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Add plugin' })).toBeHidden();
 
   const project = () => page.evaluate(() => window.__ivandaw?.project());
   const before = await project();
@@ -31,8 +31,8 @@ test('play-only locks the graph, keeps volume, pan and BPM', async ({ page }) =>
 
   // Sound controls still work: the box footer and BPM.
   await page.locator('.ivd-node[data-node="master"] input[data-control="pan"]').fill('0.5');
-  await page.getByRole('spinbutton', { name: 'BPM' }).fill('140');
-  await page.getByRole('spinbutton', { name: 'BPM' }).press('Enter');
+  await page.getByRole('textbox', { name: 'BPM' }).fill('140');
+  await page.getByRole('textbox', { name: 'BPM' }).press('Enter');
   const changed = await project();
   expect(changed?.nodes.find((n) => n.id === 'master')?.pan).toBe(0.5);
   expect(changed?.transport.bpm).toBe(140);
@@ -43,5 +43,5 @@ test('?play_only works too, and the plain page stays editable', async ({ page })
   expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('play');
   await openDemo(page, '/?project=sine');
   expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('edit');
-  await expect(page.getByRole('button', { name: '+ Add' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add plugin' })).toBeVisible();
 });

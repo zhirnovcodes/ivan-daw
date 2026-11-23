@@ -1,9 +1,11 @@
 // Small DOM helpers shared by the three panels.
 
 import { PANELS_CSS } from './styles';
+import { ensureW95 } from './w95';
 
 let styleEl: HTMLStyleElement | undefined;
 export function ensureStyles(): void {
+  ensureW95();
   if (styleEl?.isConnected) return;
   styleEl = document.createElement('style');
   styleEl.textContent = PANELS_CSS;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampBpm, parseBpm, stepBpm } from './bpm';
+import { clampBpm, formatBpm, parseBpm, stepBpm } from './bpm';
 
 describe('parseBpm', () => {
   it('reads numbers', () => {
@@ -34,5 +34,13 @@ describe('stepBpm', () => {
   it('clampBpm', () => {
     expect(clampBpm(0)).toBe(40);
     expect(clampBpm(500)).toBe(240);
+  });
+});
+
+describe('formatBpm', () => {
+  it('always shows two decimals', () => {
+    expect(formatBpm(120)).toBe('120.00');
+    expect(formatBpm(100.55)).toBe('100.55');
+    expect(formatBpm(97.5)).toBe('97.50');
   });
 });

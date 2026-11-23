@@ -22,7 +22,7 @@ export async function addNode(page: Page, name: RegExp): Promise<string> {
   const before = await page.evaluate(
     () => window.__ivandaw?.project().nodes.map((n) => n.id) ?? [],
   );
-  await page.getByRole('button', { name: '+ Add' }).click();
+  await page.getByRole('button', { name: 'Add plugin' }).click();
   await page.getByRole('menuitem', { name }).click();
   let id: string | undefined;
   await expect
