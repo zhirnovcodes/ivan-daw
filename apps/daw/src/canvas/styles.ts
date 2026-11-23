@@ -17,6 +17,8 @@ export const CANVAS_CSS = `
 .ivd-cable-g:hover .ivd-cable, .ivd-cable-g.selected .ivd-cable { stroke-width: 4; stroke-dasharray: none; }
 .ivd-cable.temp { pointer-events: none; }
 .ivd-hit { fill: none; stroke: transparent; pointer-events: stroke; cursor: pointer; }
+.ivd-play .ivd-hit { pointer-events: none; }
+.ivd-play .ivd-dot.out { cursor: default; }
 
 /* Plugin windows */
 .ivd-node { position: absolute; left: 0; top: 0; box-sizing: border-box; padding: 0; }

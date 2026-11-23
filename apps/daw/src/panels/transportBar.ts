@@ -83,9 +83,9 @@ export const mountTransportBar: MountUi = (root) => {
     addBtn,
     noteBtn,
   );
-  // Play-only (v1.1): nothing can be added.
-  addBtn.hidden = mode.peek() === 'play';
-  noteBtn.hidden = mode.peek() === 'play';
+  // Play-only: nothing can be added; the buttons stay, greyed out.
+  addBtn.disabled = mode.peek() === 'play';
+  noteBtn.disabled = mode.peek() === 'play';
   root.appendChild(bar);
 
   // Buttons give focus back to the page, so Space always toggles Play afterwards.

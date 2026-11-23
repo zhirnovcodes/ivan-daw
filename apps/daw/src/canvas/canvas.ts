@@ -182,6 +182,8 @@ const modOuts = (manifest: PortsManifest | undefined) =>
 export const mountCanvas: MountUi = (root) => {
   ensureStyles();
   const canvas = h('div', 'ivd-canvas');
+  // Play-only: cables are drawn dashed and can't be hovered or clicked.
+  canvas.classList.toggle('ivd-play', mode.peek() === 'play');
   const svg = s('svg', {}, 'ivd-cables');
   const cableLayer = s('g');
   const tempPath = s('path', {}, 'ivd-cable temp');
@@ -422,11 +424,7 @@ export const mountCanvas: MountUi = (root) => {
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
-    const outKind =
-      asked.kind === 'outPort'
-        ? views.get(asked.ref.node)?.manifest?.ports.find((p) => p.id === asked.ref.port)?.kind
-        : undefined;
-    const target = playTarget(mode.peek(), asked, outKind);
+    const target = playTarget(mode.peek(), asked);
     if (!target) return;
     dispatch({ type: 'down', target, at: rel(e) });
     if (capture && state.mode !== 'idle') track(capture, e);
@@ -556,7 +554,7 @@ export const mountCanvas: MountUi = (root) => {
     };
   }
 
-  /** Title bar: on / off box, name, `?`, `_` (plugins with a UI), `X` (not Master, not in play-only). */
+  /** Title bar: on / off box, name, `?`, `_` (plugins with a UI), `X` (not Master; greyed in play-only). */
   function buildTitle(id: string, v: NodeView): void {
     v.el.querySelector(':scope > .w95-titlebar')?.remove();
     const isMaster = v.plugin === MASTER_PLUGIN;
@@ -571,8 +569,15 @@ export const mountCanvas: MountUi = (root) => {
         onClick: () => setUiHidden(id, !v.uiHidden),
       });
     }
-    if (!isMaster && mode.peek() === 'edit') {
-      buttons.push({ label: 'X', title: 'Remove plugin', onClick: () => removeNode(id) });
+    if (!isMaster) {
+      // Play-only: the X stays, greyed out.
+      const locked = mode.peek() === 'play';
+      buttons.push({
+        label: 'X',
+        title: 'Remove plugin',
+        onClick: () => removeNode(id),
+        ...(locked ? { disabled: true } : {}),
+      });
     }
     const { bar, caption } = titleBar(v.manifest?.name ?? v.plugin, buttons);
     bar.classList.add('ivd-header');

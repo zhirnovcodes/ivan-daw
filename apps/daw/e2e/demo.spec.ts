@@ -22,9 +22,17 @@ test('the demo plays Beatality from a held note', async ({ page }) => {
   await expect.poll(() => rms(page), { timeout: 2_000 }).toBeLessThan(0.001);
 });
 
-test('in play-only, the LFO can still be linked to Beatality over ARM', async ({ page }) => {
+test('in play-only, ARM connectors are locked', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   await openDemo(page, '/play_only');
+  await drag(page, armDot('n3', 1, 'out'), armDot('n2', 1, 'in'));
+  await expect(page.locator('.ivd-conn')).toHaveCount(0);
+  expect(await page.evaluate(() => window.__ivandaw?.project().arms ?? [])).toEqual([]);
+});
+
+test('the LFO can be linked to Beatality over ARM', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await openDemo(page, '/');
   await drag(page, armDot('n3', 1, 'out'), armDot('n2', 1, 'in'));
   const conn = page.locator('.ivd-conn');
   await expect(conn).toBeVisible();

@@ -104,6 +104,8 @@ export interface TitleButton {
   label: '?' | '_' | 'X';
   title: string;
   onClick: (e: MouseEvent) => void;
+  /** Shown greyed out and does nothing. */
+  disabled?: boolean;
 }
 
 /**
@@ -127,6 +129,7 @@ export function titleBar(
     btn.textContent = b.label === '_' ? '–' : b.label;
     btn.title = b.title;
     btn.setAttribute('aria-label', b.title);
+    btn.disabled = b.disabled === true;
     btn.addEventListener('pointerdown', (e) => e.stopPropagation());
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
