@@ -22,7 +22,8 @@ test('every catalog plugin loads, sounds if it is an instrument, and removes cle
   test.setTimeout(180_000);
   const errors: string[] = [];
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(m.text());
+    // TensorFlow Lite (MusicHands' hand tracking) prints its "INFO: …" start-up lines as errors.
+    if (m.type() === 'error' && !m.text().startsWith('INFO: ')) errors.push(m.text());
   });
   page.on('pageerror', (e) => errors.push(e.message));
 
@@ -67,7 +68,8 @@ test('every catalog plugin loads, sounds if it is an instrument, and removes cle
         await page.evaluate(() => window.__ivandaw?.play());
         await expect.poll(() => rms(page), { timeout: 5_000 }).toBeGreaterThan(0.01);
         await page.evaluate(() => window.__ivandaw?.stop());
-        await expect.poll(() => rms(page), { timeout: 2_000 }).toBeLessThan(0.001);
+        // An instrument may ring out for the tail it declares (Axolotl Pad: 12 s), not forever.
+        await expect.poll(() => rms(page), { timeout: 13_000 }).toBeLessThan(0.001);
       }
 
       await page.locator('.ivd-node[data-node="p"] .ivd-header').click();
