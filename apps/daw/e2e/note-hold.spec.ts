@@ -33,3 +33,22 @@ test('Note hold gates Beatality: sound on Play, silence on Stop', async ({ page 
   await page.evaluate(() => window.__ivandaw?.stop());
   await expect.poll(() => rms(page), { timeout: 2_000 }).toBeLessThan(0.001);
 });
+
+// v1.2: Stop releases the held note while the song plays on; "Run next bar" brings it back on the
+// next bar line and unticks itself.
+test('Note hold Stop and Run next bar', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await openDemo(page);
+  const hold = page.locator('.ivd-node[data-node="n1"]');
+  await page.evaluate(() => window.__ivandaw?.play());
+  await expect.poll(() => rms(page), { timeout: 5_000 }).toBeGreaterThan(0.01);
+
+  await hold.getByRole('button', { name: 'Stop' }).click();
+  await expect.poll(() => rms(page), { timeout: 2_000 }).toBeLessThan(0.001);
+
+  const run = hold.getByRole('checkbox', { name: 'Run next bar' });
+  await run.check();
+  await expect.poll(() => rms(page), { timeout: 4_000 }).toBeGreaterThan(0.01);
+  await expect(run).not.toBeChecked();
+  await page.evaluate(() => window.__ivandaw?.stop());
+});

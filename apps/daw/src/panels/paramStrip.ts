@@ -47,6 +47,13 @@ export function mountParamStrip(
     disposers.push(d);
   };
   for (const p of params) root.append(paramRow(nodeId, p, inst, own));
+  // A plugin that moves its own parameter (Note hold's "Run next bar" switching itself off) updates its row.
+  const shown = new Set(params.map((p) => p.id));
+  own(
+    inst.subscribe((c) => {
+      if (c.source === 'internal' && shown.has(c.id)) setParam(nodeId, c.id, c.value);
+    }),
+  );
   return () => {
     for (const d of disposers) d();
     root.replaceChildren();

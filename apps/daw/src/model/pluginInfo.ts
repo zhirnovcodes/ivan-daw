@@ -58,6 +58,9 @@ Draw a cable from **ARM OUT** to a plugin's **ARM IN**, pick what it moves (In),
 
   'com.ivandaw.note-hold': `**Note hold** plays one long held note while the song plays.
 
+**Stop** releases the note; the song plays on.
+**Run next bar** waits for the next bar line, starts the note there and unticks itself.
+
 **MIDI OUT**: the note; plug it into an instrument such as Beatality.`,
 };
 

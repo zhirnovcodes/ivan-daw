@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ARM_ROW,
   armDot,
   CENTRE_MIN_W,
   FOOTER_H,
@@ -15,7 +14,6 @@ import {
 } from './window';
 
 const midiIn = { id: 'in', label: 'in', kind: 'events' as const };
-const midiOut = { id: 'out', label: 'out', kind: 'events' as const };
 const audioOut = { id: 'out', label: 'out', kind: 'audio' as const };
 const modOut = { id: 'out', label: 'out', kind: 'modulation' as const };
 
