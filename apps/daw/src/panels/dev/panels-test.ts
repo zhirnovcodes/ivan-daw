@@ -9,7 +9,7 @@ import { fetchProject } from '../../model/project';
 import { loadProject, select, setNodeStatus } from '../../store/actions';
 import { project, provide, selection } from '../../store/store';
 import { formatDb } from '../format';
-import { mountAddMenu, mountNodePanel, mountTransportBar, setPanelServices } from '../index';
+import { mountAddMenu, mountTransportBar, setPanelServices } from '../index';
 
 const plugins: Catalog['plugins'] = [
   {
@@ -124,7 +124,6 @@ const el = (id: string): HTMLElement => {
   return e;
 };
 mountTransportBar(el('bar'));
-mountNodePanel(el('side'));
 mountAddMenu(el('menu'));
 el('center').textContent =
   'Add menu places new nodes at (400, 300), plus 24 px for each node already there.';

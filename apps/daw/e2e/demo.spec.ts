@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { drag, openDemo, portDot, rms } from './helpers';
+import { armDot, drag, openDemo, rms } from './helpers';
 
 // v1.1 T13: the demo scene. Note hold -> Beatality -> Master is cabled; LFO and Control sliders wait.
 test('the demo plays Beatality from a held note', async ({ page }) => {
@@ -22,18 +22,23 @@ test('the demo plays Beatality from a held note', async ({ page }) => {
   await expect.poll(() => rms(page), { timeout: 2_000 }).toBeLessThan(0.001);
 });
 
-test('in play-only, the LFO can still be cabled to Beatality', async ({ page }) => {
+test('in play-only, the LFO can still be linked to Beatality over ARM', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   await openDemo(page, '/play_only');
-  await drag(page, portDot('n3', 'out', 'out'), portDot('n2', 'ctl', 'in'));
-  const picker = page.getByRole('menu', { name: 'Control what' });
-  await expect(picker).toBeVisible();
-  // Volume and Pan first, then Beatality's own parameters.
-  await expect(picker.getByRole('menuitem').first()).toHaveText('Volume');
-  expect(await picker.getByRole('menuitem').count()).toBeGreaterThan(10);
-  await picker.getByRole('menuitem', { name: 'Pan', exact: true }).click();
-  const bound = await page.evaluate(() =>
-    window.__ivandaw?.project().cables.find((c) => c.from.node === 'n3'),
-  );
-  expect(bound?.to).toEqual({ node: 'n2', port: 'ctl:pan' });
+  await drag(page, armDot('n3', 1, 'out'), armDot('n2', 1, 'in'));
+  const conn = page.locator('.ivd-conn');
+  await expect(conn).toBeVisible();
+  // The LFO has one output, so Out is picked already. In: Volume, Pan, then Beatality's parameters.
+  await expect(conn.getByRole('combobox', { name: 'Out' })).toHaveValue('out');
+  const ins = conn.getByRole('combobox', { name: 'In' }).locator('option');
+  await expect(ins.nth(1)).toHaveText('Volume');
+  expect(await ins.count()).toBeGreaterThan(10);
+  await conn.getByRole('combobox', { name: 'In' }).selectOption('ctl:pan');
+  const arm = await page.evaluate(() => window.__ivandaw?.project().arms?.[0]);
+  expect(arm).toMatchObject({
+    from: { node: 'n3', index: 1 },
+    to: { node: 'n2', index: 1 },
+    source: 'out',
+    target: 'ctl:pan',
+  });
 });

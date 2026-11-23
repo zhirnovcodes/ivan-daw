@@ -5,6 +5,6 @@
  * Renders one UI part into `root` and returns a function that removes it.
  * The app shell (P11) calls:
  *   canvas: `mountCanvas`
- *   panels: `mountTransportBar`, `mountNodePanel`, `mountAddMenu`
+ *   panels: `mountTransportBar` (the v1.2 top panel), `mountAddMenu`
  */
 export type MountUi = (root: HTMLElement) => () => void;

@@ -1,15 +1,8 @@
-// Pure helpers for control cables on the canvas (v1.1). Design: "4. Control inputs" → Canvas.
-// Each node shows one dotted `ctl` input; a control cable dropped on it picks which control input
-// (Volume, Pan, or a parameter) it drives. Its real port id is ctl:gain / ctl:pan / ctl:param:<id>.
+// What an ARM link can drive on a node: the In list of the v1.2 connection window.
+// Port ids are ctl:gain / ctl:pan / ctl:param:<id> (v1.1 control inputs).
 
 import type { ParameterInfo } from 'ivandaw-core';
-import { CTL_GAIN, CTL_PAN, isControlPort, paramPort } from '../model/control';
-
-/** The one canvas spot for all of a node's control inputs. */
-export const CTL_SPOT = 'ctl';
-
-/** The canvas port a cable end is drawn at: every ctl:* input shares the ctl spot. */
-export const spotOf = (port: string): string => (isControlPort(port) ? CTL_SPOT : port);
+import { CTL_GAIN, CTL_PAN, paramPort } from '../model/control';
 
 export interface ControlChoice {
   port: string;

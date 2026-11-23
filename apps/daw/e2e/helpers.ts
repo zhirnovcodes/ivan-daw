@@ -42,9 +42,13 @@ export async function addNode(page: Page, name: RegExp): Promise<string> {
   return id as string;
 }
 
-/** The dot of a port, for dragging cables. */
+/** The connector of a MIDI or audio port, for dragging cables (v1.2 windows). */
 export const portDot = (node: string, port: string, dir: 'in' | 'out') =>
-  `.ivd-node[data-node="${node}"] .ivd-port.${dir}[data-port="${port}"] i`;
+  `.ivd-node[data-node="${node}"] [data-port="${dir}:${port}"]`;
+
+/** An ARM connector 1..16 (v1.2). It must be on the page shown. */
+export const armDot = (node: string, index: number, dir: 'in' | 'out') =>
+  `.ivd-node[data-node="${node}"] [data-port="${dir}:arm:${index}"]`;
 
 /** Drags the mouse from one element's centre to another's, as a user drawing a cable. */
 export async function drag(page: Page, from: string, to: string): Promise<void> {

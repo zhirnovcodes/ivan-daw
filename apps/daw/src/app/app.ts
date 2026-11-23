@@ -12,12 +12,12 @@ import type { IvanDawTestHook } from '../contracts/testHook';
 import { createEngine, type LiveEngine } from '../engine/engine';
 import { type Catalog, fetchCatalog, manifestsFrom } from '../model/catalog';
 import { fetchProject } from '../model/project';
-import { mountAddMenu, mountNodePanel, mountTransportBar, setPanelServices } from '../panels';
+import { mountAddMenu, mountTransportBar, setPanelServices } from '../panels';
 import { ensureW95 } from '../panels/w95';
 import { createRouter, type LiveRouter } from '../router/router';
 import { createScheduler, type LiveScheduler } from '../scheduler/scheduler';
 import { loadProject, play, stop } from '../store/actions';
-import { camera, mode, nodeStatus, project, provide, selection, uiSlots } from '../store/store';
+import { camera, mode, nodeStatus, project, provide, uiSlots } from '../store/store';
 import { readMode } from './mode';
 import { type Mounted, syncPluginUis } from './pluginUi';
 import { projectPath } from './projectUrl';
@@ -35,8 +35,6 @@ body { font: 13px/1.2 var(--w95-font); color: #000; background: var(--w95-desk);
 #app { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 #ivd-bar { flex: 1; min-width: 0; }
 #ivd-bar .ivp-bar { background: transparent; }
-#ivd-side { position: absolute; right: 16px; top: var(--ivd-top-h); bottom: 16px; z-index: 50; width: 260px; overflow-y: auto; }
-#ivd-side.ivd-empty { display: none; }
 .ivd-play-tag { margin-left: 8px; padding: 3px 6px; box-shadow: var(--w95-sunken); background: var(--w95-field); }
 `;
 
@@ -55,7 +53,7 @@ function el(tag: string, id: string, parent: HTMLElement): HTMLElement {
 }
 
 /** Builds the layout. `#app` keeps the plain "IvanDAW" title the smoke test looks for. */
-function layout(): { bar: HTMLElement; canvas: HTMLElement; side: HTMLElement; menu: HTMLElement } {
+function layout(): { bar: HTMLElement; canvas: HTMLElement; menu: HTMLElement } {
   ensureW95();
   const style = document.createElement('style');
   style.textContent = CSS;
@@ -67,9 +65,8 @@ function layout(): { bar: HTMLElement; canvas: HTMLElement; side: HTMLElement; m
   top.append(app);
   const bar = el('div', 'ivd-bar', top);
   const canvas = el('div', 'ivd-canvas', shell);
-  const side = el('div', 'ivd-side', shell);
   const menu = el('div', 'ivd-menu', document.body);
-  return { bar, canvas, side, menu };
+  return { bar, canvas, menu };
 }
 
 async function loadCatalog(): Promise<Catalog> {
@@ -123,7 +120,10 @@ export async function boot(): Promise<App> {
     },
   });
 
-  setCanvasServices({ parameters: (id) => engine.get(id)?.instance.parameters() ?? [] });
+  setCanvasServices({
+    parameters: (id) => engine.get(id)?.instance.parameters() ?? [],
+    instance: (id) => engine.get(id)?.instance,
+  });
 
   mountTransportBar(ui.bar);
   if (mode.value === 'play') {
@@ -133,7 +133,6 @@ export async function boot(): Promise<App> {
     ui.bar.querySelector('.ivp-spacer')?.before(tag);
   }
   mountCanvas(ui.canvas);
-  mountNodePanel(ui.side);
   mountAddMenu(ui.menu);
   // Plugins with a manifest.ui show their own UI inside their node box.
   const mountedUis = new Map<string, Mounted>();
@@ -145,9 +144,6 @@ export async function boot(): Promise<App> {
       onError: notify,
     });
   });
-
-  // The side column takes no width while nothing is selected.
-  selection.subscribe((s) => ui.side.classList.toggle('ivd-empty', !s.node));
 
   if (import.meta.env.DEV) {
     const hook: IvanDawTestHook = {

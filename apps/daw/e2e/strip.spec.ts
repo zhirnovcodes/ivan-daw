@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-// v1.1 T3: volume and pan sliders on every box with a main audio out, and on Master.
+// v1.1 T3 / v1.2: Volume and Pan under instruments, MIDI plugins and Master; not under modulators.
 test('box footers set volume and pan, Master included', async ({ page }) => {
   await page.goto('/?project=sine');
   const node = (id: string) => page.locator(`.ivd-node[data-node="${id}"]`);
   await expect(node('n2').locator('.ivd-foot')).toBeVisible();
   await expect(node('master').locator('.ivd-foot')).toBeVisible();
-  // The note generator has no audio out, so no footer.
-  await expect(node('n1').locator('.ivd-foot')).toHaveCount(0);
+  // v1.2: the note generator is a MIDI plugin: its Volume / Pan act on its notes.
+  await expect(node('n1').locator('.ivd-foot')).toBeVisible();
 
   await node('n2').locator('input[data-control="gain"]').fill('0.5');
   await node('master').locator('input[data-control="pan"]').fill('-0.75');

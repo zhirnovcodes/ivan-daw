@@ -1,13 +1,17 @@
 {
   "format": "ivandaw.project",
   "version": 1,
-  "transport": { "bpm": 120, "numerator": 4, "denominator": 4 },
+  "transport": {
+    "bpm": 120,
+    "numerator": 4,
+    "denominator": 4
+  },
   "nodes": [
     {
       "id": "n1",
       "plugin": "com.ivandaw.note-hold",
-      "x": 40,
-      "y": 60,
+      "x": 20,
+      "y": 20,
       "gain": 1,
       "pan": 0,
       "bypass": false,
@@ -16,8 +20,8 @@
     {
       "id": "n2",
       "plugin": "com.beatality.beatality",
-      "x": 280,
-      "y": 40,
+      "x": 420,
+      "y": 20,
       "gain": 1,
       "pan": 0,
       "bypass": false,
@@ -26,8 +30,8 @@
     {
       "id": "n3",
       "plugin": "com.ivandaw.lfo",
-      "x": 40,
-      "y": 220,
+      "x": 20,
+      "y": 170,
       "gain": 1,
       "pan": 0,
       "bypass": false,
@@ -36,8 +40,8 @@
     {
       "id": "n4",
       "plugin": "com.ivandaw.control-sliders",
-      "x": 40,
-      "y": 360,
+      "x": 20,
+      "y": 320,
       "gain": 1,
       "pan": 0,
       "bypass": false,
@@ -46,8 +50,8 @@
     {
       "id": "master",
       "plugin": "builtin.master",
-      "x": 1100,
-      "y": 60,
+      "x": 1320,
+      "y": 40,
       "gain": 1,
       "pan": 0,
       "bypass": false,
@@ -55,11 +59,27 @@
     }
   ],
   "cables": [
-    { "id": "c1", "from": { "node": "n1", "port": "out" }, "to": { "node": "n2", "port": "in" } },
+    {
+      "id": "c1",
+      "from": {
+        "node": "n1",
+        "port": "out"
+      },
+      "to": {
+        "node": "n2",
+        "port": "in"
+      }
+    },
     {
       "id": "c2",
-      "from": { "node": "n2", "port": "out" },
-      "to": { "node": "master", "port": "in" }
+      "from": {
+        "node": "n2",
+        "port": "out"
+      },
+      "to": {
+        "node": "master",
+        "port": "in"
+      }
     }
   ]
 }

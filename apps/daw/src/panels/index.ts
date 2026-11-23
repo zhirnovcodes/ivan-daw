@@ -1,4 +1,4 @@
 export { addMenuOpen, mountAddMenu } from './addMenu';
-export { mountNodePanel } from './nodePanel';
+export { mountParamStrip, stripParams } from './paramStrip';
 export { type PanelServices, setPanelServices } from './services';
 export { mountTransportBar } from './transportBar';

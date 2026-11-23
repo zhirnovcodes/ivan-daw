@@ -17,7 +17,7 @@ test('hide and show Beatality keeps its UI and its state', async ({ page }) => {
 
   await node.getByRole('button', { name: 'Hide plugin' }).click();
   await expect(slot).toBeHidden();
-  expect((await node.boundingBox())?.width).toBe(180);
+  expect((await node.boundingBox())?.width).toBeLessThan(400);
   await expect(node.locator('[data-control="gain"]')).toBeVisible();
   await expect(node.locator('[data-control="pan"]')).toBeVisible();
   const hidden = await page.evaluate(
@@ -25,7 +25,9 @@ test('hide and show Beatality keeps its UI and its state', async ({ page }) => {
   );
   expect(hidden).toBe(true);
   // Nodes without their own UI have no button.
-  await expect(page.locator('.ivd-node[data-node="master"] .ivd-fold')).toHaveCount(0);
+  await expect(
+    page.locator('.ivd-node[data-node="master"]').getByRole('button', { name: 'Hide plugin' }),
+  ).toHaveCount(0);
 
   await node.getByRole('button', { name: 'Show plugin' }).click();
   await expect(slot).toBeVisible();

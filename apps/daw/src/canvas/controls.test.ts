@@ -1,6 +1,6 @@
 import type { ParameterInfo } from 'ivandaw-core';
 import { describe, expect, it } from 'vitest';
-import { controlChoices, spotOf } from './controls';
+import { controlChoices } from './controls';
 
 const p = (id: string, group?: string, automatable = true): ParameterInfo => ({
   id,
@@ -34,11 +34,5 @@ describe('control choices', () => {
   it('has no Volume / Pan without a strip', () => {
     expect(controlChoices(false, [p('rate')]).map((c) => c.port)).toEqual(['ctl:param:rate']);
     expect(controlChoices(false, [])).toEqual([]);
-  });
-
-  it('draws every control input at the one ctl spot', () => {
-    expect(spotOf('ctl:gain')).toBe('ctl');
-    expect(spotOf('ctl:param:x')).toBe('ctl');
-    expect(spotOf('in')).toBe('in');
   });
 });

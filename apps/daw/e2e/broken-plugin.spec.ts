@@ -40,7 +40,7 @@ test('broken plugins show an error; the rest of the scene still plays', async ({
   ] as const) {
     const box = page.locator(`.ivd-node[data-node="${id}"]`);
     await expect(box).toHaveAttribute('data-status', 'error');
-    await expect(box.locator('.ivd-dot')).toHaveAttribute(
+    await expect(box.locator('.w95-caption')).toHaveAttribute(
       'title',
       new RegExp(`^${escapeRe(message)}`),
     );
