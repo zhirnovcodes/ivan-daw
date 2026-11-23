@@ -1,0 +1,58 @@
+# Deploys the DAW to https://ivancodes.dev/daw/ (Cloudflare, see wrangler.jsonc) on every push to main.
+# Playwright stays local: `pnpm check` runs it before every push (CLAUDE.md, "Commits").
+# Secrets: CLOUDFLARE_API_TOKEN (Edit Cloudflare Workers, zone ivancodes.dev), CLOUDFLARE_ACCOUNT_ID.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # postinstall downloads every external plugin's pinned release into plugins/<name>/dist.
+      - run: pnpm install --frozen-lockfile
+
+      # A plain fetch only warns when a download fails; a deploy must not go out without a plugin.
+      - name: Every external plugin is installed
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const missing = fs.readdirSync("plugins").filter((n) => {
+              const pkg = JSON.parse(fs.readFileSync(`plugins/${n}/package.json`, "utf8"));
+              return pkg.ivandaw?.repo && !fs.existsSync(`plugins/${n}/dist/manifest.json`);
+            });
+            if (missing.length) { console.error("not installed:", missing.join(", ")); process.exit(1); }
+          '
+
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+
+      # Builds first-party plugins, then the app with every plugin into apps/daw/dist/daw/.
+      - run: pnpm --filter ivandaw build
+
+      - name: Deploy to Cloudflare
+        run: npx --yes wrangler@4.158.0 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

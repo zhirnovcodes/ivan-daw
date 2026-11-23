@@ -13,7 +13,7 @@ const THUMB = `url("data:image/svg+xml,${encodeURIComponent(
 )}")`;
 
 export const W95_CSS = `
-@font-face { font-family: 'W95FA'; src: url('/fonts/w95fa.woff2') format('woff2'), url('/fonts/w95fa.woff') format('woff');
+@font-face { font-family: 'W95FA'; src: url('${import.meta.env.BASE_URL}fonts/w95fa.woff2') format('woff2'), url('${import.meta.env.BASE_URL}fonts/w95fa.woff') format('woff');
   font-display: block; }
 :root {
   --w95-desk: #387F81; --w95-face: #C0C0C0; --w95-light: #FFFFFF; --w95-hilite: #DFDFDF; --w95-shadow: #808080;

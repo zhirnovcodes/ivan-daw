@@ -1,0 +1,16 @@
+// Cloudflare deploy of the DAW: https://ivancodes.dev/daw/ (added 2026-11-23).
+// A static-assets-only Worker: no script runs, so every request is a free static asset request.
+// The build writes apps/daw/dist/daw/, so a request for /daw/<file> finds <file> in that folder.
+// The portfolio (zhirnovcodes/IvanCodesPortfolio) is a separate Worker on ivancodes.dev/*;
+// the more specific route below wins for /daw.
+// Deployed by .github/workflows/deploy.yml on every push to main.
+{
+  "name": "ivandaw",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./apps/daw/dist"
+  },
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "ivancodes.dev/daw*", "zone_name": "ivancodes.dev" }]
+}

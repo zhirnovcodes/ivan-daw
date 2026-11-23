@@ -1,9 +1,14 @@
-// Dev-server plugin: the plugin catalog. Tech design: "Plugin loading and the catalog", contract C6.
+// Vite plugin: the plugin catalog. Tech design: "Plugin loading and the catalog", contract C6.
 //
+// Dev server:
 // - GET /plugins/catalog.json  → { plugins: [{ id, name, kind, url, ports }] } (CatalogEntry).
 // - GET /plugins/<id>/*        → plugins/<name>/dist/*.
 // - `pnpm dev` also builds each plugin that has a `build` script and keeps it building in watch mode.
 //   A plugin without one (Beatality) is prebuilt: its dist/ comes from scripts/fetch-plugins.mjs.
+//
+// Build (`vite build`, the hosted site, 2026-11-23): builds first-party plugins that have no dist yet,
+// then writes the same layout as static files: <base>plugins/catalog.json with urls under the base,
+// and every catalog plugin's dist/ at <base>plugins/<id>/. An empty catalog fails the build.
 //
 // The catalog is read from plugins/*/package.json ("ivandaw": { "id" }) and
 // plugins/*/dist/manifest.json on every request, so a plugin that finishes building after the
@@ -52,8 +57,11 @@ export function scanPackages(pluginsDir: string): PluginPackage[] {
   return found;
 }
 
-/** The catalog from what is built right now. Packages without a dist/manifest.json are skipped. */
-export function buildCatalog(pluginsDir: string): Catalog {
+/**
+ * The catalog from what is built right now. Packages without a dist/manifest.json are skipped.
+ * `base` is the app's base URL: entry urls are `<base>plugins/<id>/index.js`.
+ */
+export function buildCatalog(pluginsDir: string, base = '/'): Catalog {
   const plugins: CatalogEntry[] = [];
   for (const p of scanPackages(pluginsDir)) {
     const m = readJson(join(p.dir, 'dist', 'manifest.json'));
@@ -75,7 +83,7 @@ export function buildCatalog(pluginsDir: string): Catalog {
       id: p.id,
       name: m.name,
       kind: m.kind as CatalogEntry['kind'],
-      url: `/plugins/${p.id}/index.js`,
+      url: `${base}plugins/${p.id}/index.js`,
       ports: m.ports as CatalogEntry['ports'],
       ...(ui ? { ui } : {}),
     });
@@ -118,6 +126,17 @@ const TYPES: Record<string, string> = {
   '.woff2': 'font/woff2',
 };
 
+/** Every file under `dir`, as paths relative to it with `/` separators. */
+export function listFiles(dir: string, prefix = ''): string[] {
+  const out: string[] = [];
+  for (const d of readdirSync(join(dir, prefix), { withFileTypes: true })) {
+    const rel = prefix ? `${prefix}/${d.name}` : d.name;
+    if (d.isDirectory()) out.push(...listFiles(dir, rel));
+    else if (d.isFile()) out.push(rel);
+  }
+  return out.sort();
+}
+
 function runBuild(p: PluginPackage): Promise<boolean> {
   return new Promise((done) => {
     const child = spawn('pnpm', ['run', 'build'], { cwd: p.dir, stdio: 'inherit' });
@@ -137,10 +156,50 @@ export function pluginsCatalog(options: PluginsCatalogOptions = {}): Plugin {
   const pluginsDir = options.pluginsDir ?? resolve(import.meta.dirname, '../../../plugins');
   const watch = options.watch ?? true;
   const watchers: ChildProcess[] = [];
+  let building = false;
+  let base = '/';
 
   return {
     name: 'ivandaw-plugins-catalog',
-    apply: 'serve',
+    configResolved(config) {
+      building = config.command === 'build';
+      base = config.base;
+    },
+    async buildStart() {
+      if (!building) return;
+      // Prebuilt plugins (no build script) come from fetch-plugins; build the rest if they have no dist.
+      const missing = scanPackages(pluginsDir).filter(
+        (p) => p.scripts.build && !existsSync(join(p.dir, 'dist', 'manifest.json')),
+      );
+      for (const p of missing) {
+        if (!(await runBuild(p))) this.error(`[plugins] ${p.name}: build failed`);
+      }
+    },
+    generateBundle() {
+      if (!building) return;
+      const catalog = buildCatalog(pluginsDir, base);
+      if (catalog.plugins.length === 0) {
+        this.error('[plugins] the catalog is empty: no plugin has a dist/manifest.json');
+      }
+      const byId = new Map(scanPackages(pluginsDir).map((p) => [p.id, p]));
+      for (const entry of catalog.plugins) {
+        const pkg = byId.get(entry.id);
+        if (!pkg) continue;
+        const distDir = join(pkg.dir, 'dist');
+        for (const rel of listFiles(distDir)) {
+          this.emitFile({
+            type: 'asset',
+            fileName: `plugins/${entry.id}/${rel}`,
+            source: readFileSync(join(distDir, rel)),
+          });
+        }
+      }
+      this.emitFile({
+        type: 'asset',
+        fileName: 'plugins/catalog.json',
+        source: JSON.stringify(catalog),
+      });
+    },
     async configureServer(server) {
       if (watch) {
         // Prebuilt plugins (no build script) are served as they are.

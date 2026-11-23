@@ -16,7 +16,13 @@
 import type { PluginKind, PluginManifest, PortInfo } from 'ivandaw-core';
 import { MASTER_IN, MASTER_PLUGIN } from './project';
 
-export const CATALOG_URL = '/plugins/catalog.json';
+/**
+ * The catalog's address under the app's base URL: `/plugins/catalog.json` on the dev server,
+ * `/daw/plugins/catalog.json` on the hosted build. A function, so node code (the Vite plugins)
+ * can import this module without `import.meta.env`.
+ */
+export const catalogUrl = (base: string = import.meta.env.BASE_URL): string =>
+  `${base}plugins/catalog.json`;
 
 export interface CatalogEntry {
   id: string; // manifest id, e.g. 'com.ivandaw.note-gen'
@@ -118,7 +124,7 @@ export function parseCatalog(raw: unknown): Catalog {
   return { plugins };
 }
 
-export async function fetchCatalog(url = CATALOG_URL): Promise<Catalog> {
+export async function fetchCatalog(url = catalogUrl()): Promise<Catalog> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
   return parseCatalog(await res.json());

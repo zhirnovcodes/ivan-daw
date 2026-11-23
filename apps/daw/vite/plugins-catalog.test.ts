@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildCatalog, resolvePluginFile, scanPackages } from './plugins-catalog';
+import { buildCatalog, listFiles, resolvePluginFile, scanPackages } from './plugins-catalog';
 
 const PORTS = [
   { id: 'out', label: 'out', kind: 'audio', direction: 'out', channels: 2, main: true },
@@ -69,6 +69,30 @@ describe('buildCatalog', () => {
     plugin('noports', 'com.test.c', { id: 'com.test.c', name: 'C', kind: 'effect' });
     expect(buildCatalog(root)).toEqual({ plugins: [] });
     expect(scanPackages(root).map((p) => p.id)).toEqual(['com.test.a', 'com.test.c']);
+  });
+
+  it('puts entry urls under the base URL (the hosted build uses /daw/)', () => {
+    plugin('gen', 'com.test.gen', { id: 'com.test.gen', name: 'Gen', kind: 'midi', ports: [] });
+    expect(buildCatalog(root, '/daw/').plugins[0]?.url).toBe('/daw/plugins/com.test.gen/index.js');
+  });
+});
+
+describe('listFiles', () => {
+  it('lists every file under a folder, nested ones with / separators, sorted', () => {
+    const dir = plugin('drums', 'com.test.drums', {
+      id: 'com.test.drums',
+      name: 'Drums',
+      kind: 'instrument',
+      ports: [],
+    });
+    mkdirSync(join(dir, 'dist', 'packs', 'samples'), { recursive: true });
+    writeFileSync(join(dir, 'dist', 'index.js'), '');
+    writeFileSync(join(dir, 'dist', 'packs', 'samples', 'kick 1.wav'), '');
+    expect(listFiles(join(dir, 'dist'))).toEqual([
+      'index.js',
+      'manifest.json',
+      'packs/samples/kick 1.wav',
+    ]);
   });
 });
 

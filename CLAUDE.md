@@ -1,6 +1,8 @@
 # IvanDAW: rules for agents
 
-IvanDAW is a node-graph DAW in the browser. It runs on localhost only: no hosting, no CI server.
+IvanDAW is a node-graph DAW in the browser. It is developed on localhost and hosted at https://ivancodes.dev/daw/.
+
+- Hosting: Cloudflare, a static-assets-only Worker (`wrangler.jsonc`) on the route `ivancodes.dev/daw*`; the portfolio (zhirnovcodes/IvanCodesPortfolio) is a separate Worker on the rest of the domain. `.github/workflows/deploy.yml` deploys every push to `main` after typecheck, lint and unit tests; Playwright stays local. A build uses base `/daw/` and writes `apps/daw/dist/daw/` with every plugin and `plugins/catalog.json`; `pnpm --filter ivandaw preview` serves it at http://localhost:5173/daw/. Never hard-code a `/`-rooted URL in the app: build it from `import.meta.env.BASE_URL`.
 
 - Current work: v1.2 redesign (Win95 look, sticky notes, ARM connections). Plan and design: `docs/v1.2-redesign.md`.
 - v1.1 plan: `docs/v1.1-plan.md`. Design: `docs/v1.1-tech-design.md`.

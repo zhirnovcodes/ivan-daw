@@ -5,8 +5,15 @@ declare module 'node:fs' {
     size: number;
   }
   export function existsSync(path: string): boolean;
+  export interface Dirent {
+    name: string;
+    isFile(): boolean;
+    isDirectory(): boolean;
+  }
   export function readFileSync(path: string, encoding: 'utf8'): string;
+  export function readFileSync(path: string): Uint8Array;
   export function readdirSync(path: string): string[];
+  export function readdirSync(path: string, options: { withFileTypes: true }): Dirent[];
   export function statSync(path: string): Stats;
   export function mkdirSync(path: string, options?: { recursive?: boolean }): void;
   export function mkdtempSync(prefix: string): string;
