@@ -93,3 +93,39 @@ describe('keys', () => {
     expect(keyEffects('Delete', {})).toEqual([]);
   });
 });
+
+describe('ARM links (v1.2)', () => {
+  const ctx = { sizeOf: () => ({ w: 100, h: 100 }) };
+  it('drag from ARM OUT to ARM IN connects, onto its own node does nothing', () => {
+    const from = { node: 'n1', index: 2 };
+    let s = reduce(
+      IDLE,
+      { type: 'down', target: { kind: 'armOut', end: from }, at: { x: 0, y: 0 } },
+      ctx,
+    );
+    expect(s.state.mode).toBe('armConnect');
+    s = reduce(s.state, { type: 'move', at: { x: 5, y: 5 } }, ctx);
+    const up = reduce(
+      s.state,
+      { type: 'up', at: { x: 9, y: 9 }, dropArm: { node: 'n2', index: 1 } },
+      ctx,
+    );
+    expect(up.effects).toEqual([{ type: 'connectArm', from, to: { node: 'n2', index: 1 } }]);
+    const self = reduce(
+      s.state,
+      { type: 'up', at: { x: 9, y: 9 }, dropArm: { node: 'n1', index: 1 } },
+      ctx,
+    );
+    expect(self.effects).toEqual([]);
+  });
+
+  it('an ARM cable selects; Delete removes the selected link', () => {
+    const s = reduce(
+      IDLE,
+      { type: 'down', target: { kind: 'armCable', id: 'a1' }, at: { x: 0, y: 0 } },
+      ctx,
+    );
+    expect(s.effects).toEqual([{ type: 'select', sel: { arm: 'a1' } }]);
+    expect(keyEffects('Delete', { arm: 'a1' })).toEqual([{ type: 'removeArm', id: 'a1' }]);
+  });
+});

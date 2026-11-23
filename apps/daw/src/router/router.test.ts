@@ -11,9 +11,26 @@ import {
 } from '../engine/testing/fakeAudio';
 import { type CatalogEntry, manifestsFrom } from '../model/catalog';
 import { emptyProject, parseProject } from '../model/project';
-import { connect, disconnect, loadProject, removeNode, setNodeStatus } from '../store/actions';
+import {
+  connect,
+  connectArm,
+  disconnect,
+  loadProject,
+  removeNode,
+  setArm,
+  setEnabled,
+  setGain,
+  setNodeStatus,
+  setPan,
+} from '../store/actions';
 import { defaultDeps, deps, project, provide } from '../store/store';
-import { CABLE_DISCONNECT_MS, createRouter, type LiveRouter } from './router';
+import {
+  CABLE_DISCONNECT_MS,
+  createRouter,
+  type LiveRouter,
+  panToCc,
+  scaleVelocity,
+} from './router';
 
 const GEN = 'gen';
 const SYNTH = 'synth';
@@ -470,5 +487,90 @@ describe('control cables (v1.1)', () => {
     expect(synth.got.length).toBe(before + 1); // the c1 notes cable only
     mod.emit({ type: 'midi', time: 1, bytes: [0x90, 60, 100] });
     expect(synth.got.length).toBe(before + 1);
+  });
+});
+
+describe('ARM links (v1.2)', () => {
+  const autos = (f: Fake) => f.got.filter((e) => e.type === 'automation');
+
+  it('an ARM link carries nothing until Out and In are picked', () => {
+    const synth = ready('n2');
+    const mod = ready('m1');
+    const id = connectArm({ node: 'm1', index: 1 }, { node: 'n2', index: 3 });
+    if (!id) throw new Error('connectArm');
+    expect(router.wiring.control).toEqual([]);
+    setArm(id, { source: 'out' });
+    expect(router.wiring.control).toEqual([]);
+    setArm(id, { target: 'ctl:param:level' });
+    expect(router.wiring.control.map((e) => e.to.port)).toEqual(['ctl:param:level']);
+    mod.emit({ type: 'automation', time: 1, id: 'out', value: 0.9 });
+    expect(autos(synth).at(-1)).toMatchObject({ id: 'level', value: 0.9, source: 'binding' });
+  });
+
+  it('maps values through Min / Max, and Min > Max flips them', () => {
+    const synth = ready('n2');
+    const mod = ready('m1');
+    const id = connectArm({ node: 'm1', index: 1 }, { node: 'n2', index: 1 }, 'out');
+    if (!id) throw new Error('connectArm');
+    setArm(id, { target: 'ctl:param:level', min: 50, max: 100 });
+    mod.emit({ type: 'automation', time: 1, id: 'out', value: 0.5 });
+    expect(autos(synth).at(-1)?.value).toBeCloseTo(0.75, 9);
+    setArm(id, { min: 100, max: 0 });
+    mod.emit({ type: 'automation', time: 2, id: 'out', value: 1 });
+    expect(autos(synth).at(-1)?.value).toBeCloseTo(0, 9);
+    mod.emit({ type: 'automation', time: 3, id: 'out', value: 0.25 });
+    expect(autos(synth).at(-1)?.value).toBeCloseTo(0.75, 9);
+  });
+
+  it('old control cables are dropped when a project loads', () => {
+    const p = parseProject({
+      ...emptyProject(),
+      nodes: [
+        { id: 'm1', plugin: MOD, x: 0, y: 0 },
+        { id: 'n2', plugin: SYNTH, x: 0, y: 0 },
+      ],
+      cables: [
+        { id: 'c1', from: { node: 'm1', port: 'out' }, to: { node: 'n2', port: 'ctl:gain' } },
+      ],
+    });
+    expect(p.cables).toEqual([]);
+  });
+});
+
+describe('on / off and MIDI plugin volume / pan (v1.2)', () => {
+  const midi = (f: Fake) => f.got.filter((e) => e.type === 'midi');
+
+  it('a plugin that is off sends nothing, and releases its notes when turned off', () => {
+    const synth = ready('n2');
+    const gen = ready('n1');
+    setEnabled('n1', false);
+    expect(midi(synth).at(-1)).toMatchObject({ bytes: [0xb0, 123, 0] });
+    const before = synth.got.length;
+    gen.emit({ type: 'midi', time: 1, bytes: [0x90, 60, 100] });
+    expect(synth.got.length).toBe(before);
+    setEnabled('n1', true);
+    gen.emit({ type: 'midi', time: 2, bytes: [0x90, 60, 100] });
+    expect(midi(synth).at(-1)).toMatchObject({ bytes: [0x90, 60, 100] });
+  });
+
+  it('Volume scales note-on velocity; Pan sends CC 10', () => {
+    const synth = ready('n2');
+    const gen = ready('n1');
+    setGain('n1', 0.5);
+    gen.emit({ type: 'midi', time: 1, bytes: [0x91, 60, 100] });
+    expect(midi(synth).at(-1)).toMatchObject({ bytes: [0x91, 60, 50] });
+    setPan('n1', 1);
+    expect(midi(synth).at(-1)).toMatchObject({ bytes: [0xb1, 10, 127] });
+  });
+
+  it('scaleVelocity and panToCc', () => {
+    expect(scaleVelocity([0x90, 60, 100], 1.5)).toEqual([0x90, 60, 127]);
+    expect(scaleVelocity([0x90, 60, 100], 0.001)).toEqual([0x90, 60, 1]);
+    expect(scaleVelocity([0x90, 60, 100], 0)).toBeUndefined();
+    expect(scaleVelocity([0x80, 60, 0], 0)).toEqual([0x80, 60, 0]);
+    expect(scaleVelocity([0x90, 60, 0], 0)).toEqual([0x90, 60, 0]);
+    expect(panToCc(-1)).toBe(0);
+    expect(panToCc(0)).toBe(64);
+    expect(panToCc(1)).toBe(127);
   });
 });

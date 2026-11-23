@@ -15,6 +15,8 @@ export type NodeStatus = 'loading' | 'ready' | 'error';
 export interface Selection {
   node?: string;
   cable?: string;
+  /** v1.2: a selected ARM link; its connection window is open. */
+  arm?: string;
 }
 
 /** The services the actions call. Stubs until the app shell provides the real ones. */

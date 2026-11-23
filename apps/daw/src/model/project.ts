@@ -18,7 +18,43 @@ export interface Project {
   cables: Cable[];
   /** v1.2 sticky notes, drawn above everything. Missing = none. */
   notes?: Note[];
+  /** v1.2 ARM links: numbered control connectors. Missing = none. */
+  arms?: ArmLink[];
 }
+
+/** ARM connectors per side, numbered 1..ARM_SLOTS. */
+export const ARM_SLOTS = 16;
+
+/** One end of an ARM link: a node and a connector number 1..16. */
+export interface ArmEnd {
+  node: string;
+  index: number;
+}
+
+/**
+ * v1.2: an ARM link from an ARM OUT connector to an ARM IN connector.
+ * Valid (carries values) only once both `source` and `target` are set. Design: "7. ARM connections".
+ */
+export interface ArmLink {
+  id: string; // 'a1', 'a2'…
+  from: ArmEnd;
+  to: ArmEnd;
+  /** The out node's modulation port id. */
+  source?: string;
+  /** The in node's control input: `ctl:gain`, `ctl:pan` or `ctl:param:<id>`. */
+  target?: string;
+  /** 0..100 % of the target's range. Min > Max flips the direction. */
+  min: number;
+  max: number;
+}
+
+/** True when the link carries values: both ends picked. */
+export const armValid = (a: ArmLink): a is ArmLink & { source: string; target: string } =>
+  a.source !== undefined && a.target !== undefined;
+
+/** A control value 0..1 through a link's Min / Max (percent), to 0..1. */
+export const armMap = (a: Pick<ArmLink, 'min' | 'max'>, v: number): number =>
+  clamp((a.min + (a.max - a.min) * clamp(v, 0, 1)) / 100, 0, 1);
 
 /** v1.2: a sticky note. Text uses only `**bold**` and `<https://…>` links (see `noteText.ts`). */
 export interface Note {
@@ -125,6 +161,34 @@ function readNode(v: unknown, i: number): GraphNode {
   };
 }
 
+function readArmEnd(v: unknown, where: string): ArmEnd {
+  if (!isObject(v) || typeof v.node !== 'string' || !isNum(v.index)) {
+    throw new ProjectError(`${where}: expected { node, index }`);
+  }
+  const index = Math.round(v.index);
+  if (index < 1 || index > ARM_SLOTS)
+    throw new ProjectError(`${where}.index: expected 1..${ARM_SLOTS}`);
+  return { node: v.node, index };
+}
+
+function readArm(v: unknown, i: number): ArmLink {
+  const where = `arms[${i}]`;
+  if (!isObject(v) || typeof v.id !== 'string' || v.id === '') {
+    throw new ProjectError(`${where}: expected { id, from, to }`);
+  }
+  const from = readArmEnd(v.from, `${where}.from`);
+  const to = readArmEnd(v.to, `${where}.to`);
+  return {
+    id: v.id,
+    from,
+    to,
+    ...(typeof v.source === 'string' && v.source !== '' ? { source: v.source } : {}),
+    ...(typeof v.target === 'string' && v.target.startsWith('ctl:') ? { target: v.target } : {}),
+    min: isNum(v.min) ? clamp(v.min, 0, 100) : 0,
+    max: isNum(v.max) ? clamp(v.max, 0, 100) : 100,
+  };
+}
+
 function readNote(v: unknown, i: number): Note {
   const where = `notes[${i}]`;
   if (!isObject(v)) throw new ProjectError(`${where}: expected an object`);
@@ -177,7 +241,7 @@ export function parseProject(raw: unknown): Project {
   }
 
   const cableIds = new Set<string>();
-  const cables = raw.cables.map((c, i): Cable => {
+  const all = raw.cables.map((c, i): Cable => {
     const where = `cables[${i}]`;
     if (!isObject(c) || typeof c.id !== 'string' || c.id === '') {
       throw new ProjectError(`${where}: expected { id, from, to }`);
@@ -191,6 +255,26 @@ export function parseProject(raw: unknown): Project {
     }
     return { id: c.id, from, to };
   });
+  // v1.2: control cables (to `ctl:*`) are gone; ARM links replace them. Old ones are dropped.
+  const cables = all.filter((c) => !c.to.port.startsWith('ctl:'));
+
+  if (raw.arms !== undefined && !Array.isArray(raw.arms))
+    throw new ProjectError('project.arms: expected an array');
+  const armIds = new Set<string>();
+  const armIns = new Set<string>();
+  const arms: ArmLink[] = [];
+  for (const [i, a] of (raw.arms ?? []).map(readArm).entries()) {
+    if (armIds.has(a.id)) throw new ProjectError(`duplicate ARM link id "${a.id}"`);
+    armIds.add(a.id);
+    for (const end of [a.from, a.to]) {
+      if (!ids.has(end.node)) throw new ProjectError(`arms[${i}]: unknown node "${end.node}"`);
+    }
+    // One link per ARM IN connector: a later one on the same connector is dropped.
+    const inKey = `${a.to.node}:${a.to.index}`;
+    if (armIns.has(inKey)) continue;
+    armIns.add(inKey);
+    arms.push(a);
+  }
 
   if (raw.notes !== undefined && !Array.isArray(raw.notes))
     throw new ProjectError('project.notes: expected an array');
@@ -208,6 +292,7 @@ export function parseProject(raw: unknown): Project {
     nodes,
     cables,
     ...(notes.length > 0 ? { notes } : {}),
+    ...(arms.length > 0 ? { arms } : {}),
   };
 }
 

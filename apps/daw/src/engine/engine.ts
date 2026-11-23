@@ -71,6 +71,9 @@ function isFactory(v: unknown): v is PluginFactory {
   );
 }
 
+/** The strip volume a node plays at: 0 while it is off (v1.2 on / off box), with the usual glide. */
+const heard = (n: GraphNode): number => (n.bypass ? 0 : n.gain);
+
 function mainAudioOutHandle(instance: PluginInstance): AudioHandle | undefined {
   for (const h of instance.ports.values()) {
     if (h.info.kind === 'audio' && h.info.direction === 'out' && h.info.main && 'node' in h)
@@ -151,10 +154,10 @@ export function createEngine(opts: EngineOptions): LiveEngine {
       const out = mainAudioOutHandle(instance);
       let strip: LiveStrip | undefined;
       if (out) {
-        strip = createStrip(context, now.gain, now.pan);
+        strip = createStrip(context, heard(now), now.pan);
         out.node.connect(strip.input, out.index);
       }
-      live.set(id, { instance, manifest, strip, out, gain: now.gain, pan: now.pan });
+      live.set(id, { instance, manifest, strip, out, gain: heard(now), pan: now.pan });
       pending.delete(id);
       const t = context.currentTime;
       const params = Object.entries(now.params);
@@ -232,9 +235,10 @@ export function createEngine(opts: EngineOptions): LiveEngine {
       }
       const n = live.get(node.id);
       if (n) {
-        if (n.strip && n.gain !== node.gain) n.strip.setGain(node.gain);
+        const g = heard(node);
+        if (n.strip && n.gain !== g) n.strip.setGain(g);
         if (n.strip && n.pan !== node.pan) n.strip.setPan(node.pan);
-        n.gain = node.gain;
+        n.gain = g;
         n.pan = node.pan;
       } else if (!pending.has(node.id) && failed.get(node.id) !== node.plugin) {
         void load(node);

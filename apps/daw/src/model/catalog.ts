@@ -143,3 +143,13 @@ export function manifestsFrom(catalog: Catalog): ManifestMap {
 export function mainAudioOut(m: PortsManifest): PortInfo | undefined {
   return m.ports.find((p) => p.kind === 'audio' && p.direction === 'out' && p.main);
 }
+
+/**
+ * v1.2: whether a node has Volume and Pan. Master and plugins with a main audio out act on their sound;
+ * MIDI plugins (kind 'midi') act on the notes they send: velocity, and MIDI pan (CC 10).
+ */
+export function hasStrip(plugin: string, m: PortsManifest | undefined): boolean {
+  if (plugin === MASTER_PLUGIN) return true;
+  if (!m) return false;
+  return mainAudioOut(m) !== undefined || m.kind === 'midi';
+}

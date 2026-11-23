@@ -280,8 +280,10 @@ describe('control inputs (v1.1)', () => {
     expect(v(p(), 'l1', 'out', 'g1', 'ctl:param:rate')).toEqual({ ok: true });
   });
 
-  it('has no volume / pan inputs on a node without audio out, and no parameters on Master', () => {
-    expect(v(p(), 'l1', 'out', 'g1', 'ctl:gain')).toEqual({ ok: false, reason: 'kind' });
+  it('has no volume / pan on a modulator, and no parameters on Master', () => {
+    // v1.2: MIDI plugins have Volume / Pan (velocity and MIDI pan).
+    expect(v(p(), 'l1', 'out', 'g1', 'ctl:gain')).toEqual({ ok: true });
+    expect(v(p(), 'l1', 'out', 'l2', 'ctl:gain')).toEqual({ ok: false, reason: 'kind' });
     expect(v(p(), 'l1', 'out', 'master', 'ctl:param:x')).toEqual({ ok: false, reason: 'kind' });
     expect(v(p(), 'l1', 'out', 's1', 'ctl:bogus')).toEqual({ ok: false, reason: 'kind' });
   });
@@ -292,26 +294,63 @@ describe('control inputs (v1.1)', () => {
     expect(v(p(), 'l1', 'out', 's1', 'in')).toEqual({ ok: false, reason: 'kind' });
   });
 
-  it('refuses a control input as a source, duplicates and loops', () => {
+  it('refuses a control input as a source', () => {
     expect(v(p(), 's1', 'ctl:gain', 'l1', 'ctl:param:x')).toEqual({
       ok: false,
       reason: 'direction',
     });
-    const one = p([['l1', 'out', 's1', 'ctl:gain']]);
-    expect(v(one, 'l1', 'out', 's1', 'ctl:gain')).toEqual({ ok: false, reason: 'duplicate' });
-    const loop = p([['l1', 'out', 'l2', 'ctl:param:rate']]);
-    expect(v(loop, 'l2', 'out', 'l1', 'ctl:param:rate')).toEqual({ ok: false, reason: 'cycle' });
   });
 
-  it('plans control cables in their own list, with their own lookup table', () => {
-    const pr = p([
-      ['l1', 'out', 's1', 'ctl:pan'],
-      ['s1', 'out', 'master', 'in'],
+  it('plans valid ARM links as control edges with their Min / Max (v1.2)', () => {
+    const pr: Project = {
+      ...p([['s1', 'out', 'master', 'in']]),
+      arms: [
+        {
+          id: 'a1',
+          from: { node: 'l1', index: 1 },
+          to: { node: 's1', index: 1 },
+          source: 'out',
+          target: 'ctl:pan',
+          min: 20,
+          max: 80,
+        },
+        // invalid: no In picked yet
+        {
+          id: 'a2',
+          from: { node: 'l1', index: 2 },
+          to: { node: 's1', index: 2 },
+          min: 0,
+          max: 100,
+        },
+        // a notes port is not an ARM source
+        {
+          id: 'a3',
+          from: { node: 'g1', index: 1 },
+          to: { node: 's1', index: 3 },
+          source: 'out',
+          target: 'ctl:gain',
+          min: 0,
+          max: 100,
+        },
+      ],
+    };
+    const w = plan(pr, manifests, { l1: 'ready', s1: 'ready', g1: 'ready', master: 'ready' });
+    expect(w.control).toEqual([
+      {
+        id: 'a1',
+        from: { node: 'l1', port: 'out' },
+        to: { node: 's1', port: 'ctl:pan' },
+        range: { min: 20, max: 80 },
+      },
     ]);
-    const w = plan(pr, manifests, { l1: 'ready', s1: 'ready', master: 'ready' });
-    expect(w.control.map((e) => e.id)).toEqual(['c1']);
-    expect(w.audio.map((e) => e.id)).toEqual(['c2']);
-    expect(eventTable(w, 'control').get('l1:out')).toEqual([{ node: 's1', port: 'ctl:pan' }]);
+    expect(w.audio.map((e) => e.id)).toEqual(['c1']);
+    expect(eventTable(w, 'control').get('l1:out')).toEqual([
+      { node: 's1', port: 'ctl:pan', range: { min: 20, max: 80 } },
+    ]);
     expect(eventTable(w).get('l1:out')).toBeUndefined();
+    // A Min / Max change is a new edge: the router re-primes it.
+    const moved = { ...pr, arms: pr.arms?.map((a) => (a.id === 'a1' ? { ...a, max: 90 } : a)) };
+    const w2 = plan(moved, manifests, { l1: 'ready', s1: 'ready', g1: 'ready', master: 'ready' });
+    expect(diffWiring(w, w2).control.connect.map((e) => e.range)).toEqual([{ min: 20, max: 90 }]);
   });
 });

@@ -19,13 +19,16 @@ export const REFUSE_TEXT: Record<RefuseReason, string> = {
 };
 
 /** One planned connection. `id` is the cable id it comes from. */
-export type WiringEdge = Pick<Cable, 'id' | 'from' | 'to'>;
+export type WiringEdge = Pick<Cable, 'id' | 'from' | 'to'> & {
+  /** v1.2 ARM links: Min / Max in percent; control values 0..1 are mapped onto it. */
+  range?: { min: number; max: number };
+};
 
 /** The connections to make real: exactly the project's cables whose two nodes are ready. */
 export interface Wiring {
   audio: WiringEdge[];
   events: WiringEdge[];
-  /** v1.1: modulation out → a host-made `ctl:*` input. */
+  /** Modulation out → a host-made `ctl:*` input: v1.2 ARM links (`id` is the link id). */
   control: WiringEdge[];
 }
 

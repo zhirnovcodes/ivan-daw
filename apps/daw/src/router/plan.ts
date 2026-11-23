@@ -2,7 +2,7 @@
 
 import type { Wiring, WiringEdge } from '../contracts/router';
 import type { ManifestMap } from '../model/catalog';
-import type { Project } from '../model/project';
+import { armValid, type Project } from '../model/project';
 import { compatible, findPort } from './validate';
 
 export const EMPTY_WIRING: Wiring = { audio: [], events: [], control: [] };
@@ -37,6 +37,18 @@ export function plan(
     else if (out.kind === 'events') events.push(edge);
     else control.push(edge);
   }
+  // v1.2: every valid ARM link is a control edge carrying its Min / Max.
+  for (const a of p.arms ?? []) {
+    if (!armValid(a)) continue;
+    if (status[a.from.node] !== 'ready' || status[a.to.node] !== 'ready') continue;
+    const from = { node: a.from.node, port: a.source };
+    const to = { node: a.to.node, port: a.target };
+    const out = findPort(p, manifests, from);
+    const inp = findPort(p, manifests, to);
+    if (!out || !inp || out.kind !== 'modulation' || out.direction !== 'out') continue;
+    if (inp.kind !== 'modulation' || inp.direction !== 'in') continue;
+    control.push({ id: a.id, from, to, range: { min: a.min, max: a.max } });
+  }
   return { audio, events, control };
 }
 
@@ -46,7 +58,8 @@ export interface WiringDiff {
 }
 
 const key = (e: WiringEdge): string =>
-  `${e.id}|${e.from.node}:${e.from.port}>${e.to.node}:${e.to.port}`;
+  `${e.id}|${e.from.node}:${e.from.port}>${e.to.node}:${e.to.port}` +
+  (e.range ? `|${e.range.min}-${e.range.max}` : '');
 
 /** What to connect and disconnect to go from `prev` to `next`, per kind. Edges match by id and ends. */
 export function diffWiring(
@@ -68,16 +81,23 @@ export function diffWiring(
   };
 }
 
+/** Where a forwarded event goes; `range` (percent) maps control values for ARM links. */
+export interface EventTarget {
+  node: string;
+  port: string;
+  range?: { min: number; max: number };
+}
+
 /** The lookup table `fromNode:fromPort → [{ node, port }]` for one edge list (events or control). */
 export function eventTable(
   w: Wiring,
   kind: 'events' | 'control' = 'events',
-): Map<string, { node: string; port: string }[]> {
-  const table = new Map<string, { node: string; port: string }[]>();
+): Map<string, EventTarget[]> {
+  const table = new Map<string, EventTarget[]>();
   for (const e of w[kind]) {
     const k = `${e.from.node}:${e.from.port}`;
     const list = table.get(k) ?? [];
-    list.push({ ...e.to });
+    list.push(e.range ? { ...e.to, range: { ...e.range } } : { ...e.to });
     table.set(k, list);
   }
   return table;

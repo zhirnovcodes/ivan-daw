@@ -8,6 +8,7 @@ import {
   addNode,
   addNote,
   connect,
+  connectArm,
   disconnect,
   loadProject,
   moveNode,
@@ -15,12 +16,15 @@ import {
   panCamera,
   pause,
   play,
+  removeArm,
   removeNode,
   removeNote,
   resetZoom,
   resizeNote,
   select,
+  setArm,
   setBpm,
+  setEnabled,
   setGain,
   setNodeStatus,
   setNoteText,
@@ -465,5 +469,53 @@ describe('sticky notes (v1.2)', () => {
     expect(project.value.notes?.map((n) => n.id)).toEqual([a]);
     removeNote(a);
     expect('notes' in project.value).toBe(false);
+  });
+});
+
+describe('ARM links and on / off (v1.2)', () => {
+  it('connectArm selects the new link, replaces one on the same ARM IN, refuses its own node', () => {
+    const a = connectArm({ node: 'n1', index: 1 }, { node: 'n2', index: 2 });
+    expect(selection.value).toEqual({ arm: a });
+    const b = connectArm({ node: 'n1', index: 5 }, { node: 'n2', index: 2 }, 'out');
+    expect(project.value.arms).toEqual([
+      {
+        id: b,
+        from: { node: 'n1', index: 5 },
+        to: { node: 'n2', index: 2 },
+        source: 'out',
+        min: 0,
+        max: 100,
+      },
+    ]);
+    expect(connectArm({ node: 'n1', index: 1 }, { node: 'n1', index: 2 })).toBeUndefined();
+    expect(connectArm({ node: 'n1', index: 0 }, { node: 'n2', index: 2 })).toBeUndefined();
+  });
+
+  it('setArm sets / clears Out and In and clamps Min / Max; removeArm and removeNode drop links', () => {
+    const id = connectArm({ node: 'n1', index: 1 }, { node: 'n2', index: 1 }) ?? '';
+    setArm(id, { source: 'out', target: 'ctl:gain', min: -10, max: 150.4 });
+    expect(project.value.arms?.[0]).toMatchObject({
+      source: 'out',
+      target: 'ctl:gain',
+      min: 0,
+      max: 100,
+    });
+    setArm(id, { target: null });
+    expect(project.value.arms?.[0]?.target).toBeUndefined();
+    removeArm(id);
+    expect('arms' in project.value).toBe(false);
+    expect(selection.value).toEqual({});
+    connectArm({ node: 'n1', index: 1 }, { node: 'n2', index: 1 });
+    removeNode('n2');
+    expect('arms' in project.value).toBe(false);
+  });
+
+  it('setEnabled flips bypass; Master stays on', () => {
+    setEnabled('n2', false);
+    expect(node('n2')?.bypass).toBe(true);
+    setEnabled('n2', true);
+    expect(node('n2')?.bypass).toBe(false);
+    setEnabled(MASTER_ID, false);
+    expect(node(MASTER_ID)?.bypass).toBe(false);
   });
 });

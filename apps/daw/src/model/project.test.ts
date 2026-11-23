@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import demoJson from '../../public/projects/demo.json';
 import sineJson from '../../public/projects/sine.json';
-import { emptyProject, MASTER_ID, MASTER_PLUGIN, parseProject } from './project';
+import { armMap, armValid, emptyProject, MASTER_ID, MASTER_PLUGIN, parseProject } from './project';
 
 const sine = (): unknown => structuredClone(sineJson);
 describe('parseProject', () => {
@@ -154,5 +154,44 @@ describe('notes (v1.2)', () => {
         ]),
       ),
     ).toThrow(/duplicate note/);
+  });
+});
+
+describe('ARM links (v1.2)', () => {
+  const nodes = [
+    { id: 'n1', plugin: 'com.ivandaw.lfo', x: 0, y: 0 },
+    { id: 'n2', plugin: 'com.ivandaw.base-sine-synth', x: 0, y: 0 },
+  ];
+  const withArms = (arms: unknown): unknown => ({ ...emptyProject(), nodes, arms });
+  const from = { node: 'n1', index: 1 };
+  const to = { node: 'n2', index: 2 };
+
+  it('reads links, fills Min / Max, drops a bad target and a second link on one ARM IN', () => {
+    const p = parseProject(
+      withArms([
+        { id: 'a1', from, to, source: 'out', target: 'ctl:gain', min: 120, max: -5 },
+        { id: 'a2', from: { node: 'n1', index: 3 }, to: { node: 'n2', index: 4 }, target: 'x' },
+        { id: 'a3', from, to },
+      ]),
+    );
+    expect(p.arms).toEqual([
+      { id: 'a1', from, to, source: 'out', target: 'ctl:gain', min: 100, max: 0 },
+      { id: 'a2', from: { node: 'n1', index: 3 }, to: { node: 'n2', index: 4 }, min: 0, max: 100 },
+    ]);
+    expect(p.arms?.map(armValid)).toEqual([true, false]);
+  });
+
+  it('refuses bad ends', () => {
+    const far = { node: 'n1', index: 17 };
+    expect(() => parseProject(withArms([{ id: 'a1', from: far, to }]))).toThrow(/1\.\.16/);
+    const ghost = { node: 'zz', index: 1 };
+    expect(() => parseProject(withArms([{ id: 'a1', from: ghost, to }]))).toThrow(/unknown node/);
+  });
+
+  it('armMap maps 0..1 through Min / Max percent, flipped when Min > Max', () => {
+    expect(armMap({ min: 0, max: 100 }, 0.3)).toBeCloseTo(0.3, 9);
+    expect(armMap({ min: 50, max: 100 }, 0.5)).toBeCloseTo(0.75, 9);
+    expect(armMap({ min: 100, max: 0 }, 0.25)).toBeCloseTo(0.75, 9);
+    expect(armMap({ min: 0, max: 100 }, 2)).toBe(1);
   });
 });

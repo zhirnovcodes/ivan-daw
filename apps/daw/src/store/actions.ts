@@ -4,6 +4,9 @@
 import type { RefuseReason } from '../contracts/router';
 import { mainAudioOut } from '../model/catalog';
 import {
+  ARM_SLOTS,
+  type ArmEnd,
+  type ArmLink,
   BPM_MAX,
   BPM_MIN,
   type Cable,
@@ -52,6 +55,7 @@ export type ConnectResult = { ok: true; id: string } | { ok: false; reason: Refu
 let nextNode = 1;
 let nextCable = 1;
 let nextNote = 1;
+let nextArm = 1;
 
 const idNumber = (id: string, prefix: string): number => {
   const m = new RegExp(`^${prefix}(\\d+)$`).exec(id);
@@ -61,6 +65,7 @@ const idNumber = (id: string, prefix: string): number => {
 function bumpCounters(p: Project): void {
   for (const n of p.nodes) nextNode = Math.max(nextNode, idNumber(n.id, 'n') + 1);
   for (const c of p.cables) nextCable = Math.max(nextCable, idNumber(c.id, 'c') + 1);
+  for (const a of p.arms ?? []) nextArm = Math.max(nextArm, idNumber(a.id, 'a') + 1);
   for (const n of p.notes ?? []) nextNote = Math.max(nextNote, idNumber(n.id, 's') + 1);
 }
 
@@ -129,13 +134,19 @@ export function removeNode(id: string): void {
   const gone = new Set(
     p.cables.filter((c) => c.from.node === id || c.to.node === id).map((c) => c.id),
   );
+  const arms = (p.arms ?? []).filter((a) => a.from.node !== id && a.to.node !== id);
+  const goneArms = new Set((p.arms ?? []).filter((a) => !arms.includes(a)).map((a) => a.id));
+  const { arms: _old, ...rest } = p;
   project.value = {
-    ...p,
+    ...rest,
     nodes: p.nodes.filter((n) => n.id !== id),
     cables: p.cables.filter((c) => !gone.has(c.id)),
+    ...(arms.length > 0 ? { arms } : {}),
   };
   const sel = selection.value;
-  if (sel.node === id || (sel.cable && gone.has(sel.cable))) selection.value = {};
+  if (sel.node === id || (sel.cable && gone.has(sel.cable)) || (sel.arm && goneArms.has(sel.arm))) {
+    selection.value = {};
+  }
   const { [id]: _s, ...status } = nodeStatus.value;
   nodeStatus.value = status;
   const { [id]: _e, ...errors } = nodeErrors.value;
@@ -356,4 +367,92 @@ export function removeNote(id: string): void {
 /** Opens a note's text for editing, or closes the editor (`undefined`). View state only. */
 export function editNote(id: string | undefined): void {
   editingNote.value = id;
+}
+
+// v1.2 ARM links. Design: docs/v1.2-redesign.md, "7. ARM connections".
+
+const validEnd = (e: ArmEnd): boolean =>
+  Number.isInteger(e.index) && e.index >= 1 && e.index <= ARM_SLOTS;
+
+function setArms(p: Project, arms: ArmLink[]): Project {
+  const { arms: _old, ...rest } = p;
+  return arms.length > 0 ? { ...rest, arms } : rest;
+}
+
+/**
+ * Draws an ARM link from an ARM OUT connector to an ARM IN connector and selects it, which opens its
+ * connection window. A link already on that ARM IN connector is replaced. `source` is filled in when
+ * the out node has only one choice. Returns the id, or undefined for a link onto its own node.
+ */
+export function connectArm(from: ArmEnd, to: ArmEnd, source?: string): string | undefined {
+  if (from.node === to.node || !validEnd(from) || !validEnd(to)) return undefined;
+  const p = project.value;
+  if (!p.nodes.some((n) => n.id === from.node) || !p.nodes.some((n) => n.id === to.node)) {
+    return undefined;
+  }
+  const id = `a${nextArm++}`;
+  const link: ArmLink = {
+    id,
+    from: { ...from },
+    to: { ...to },
+    ...(source !== undefined ? { source } : {}),
+    min: 0,
+    max: 100,
+  };
+  const rest = (p.arms ?? []).filter((a) => !(a.to.node === to.node && a.to.index === to.index));
+  project.value = setArms(p, [...rest, link]);
+  selection.value = { arm: id };
+  return id;
+}
+
+export interface ArmPatch {
+  source?: string | null;
+  target?: string | null;
+  min?: number;
+  max?: number;
+}
+
+/** Changes a link's Out, In, Min or Max. `null` clears Out or In, which makes the link invalid. */
+export function setArm(id: string, patch: ArmPatch): void {
+  const p = project.value;
+  const arms = p.arms ?? [];
+  const i = arms.findIndex((a) => a.id === id);
+  const a = arms[i];
+  if (!a) return;
+  const next: ArmLink = { ...a };
+  for (const k of ['source', 'target'] as const) {
+    const v = patch[k];
+    if (v === null) delete next[k];
+    else if (v !== undefined) next[k] = v;
+  }
+  if (patch.min !== undefined) next.min = clamp(Math.round(patch.min), 0, 100);
+  if (patch.max !== undefined) next.max = clamp(Math.round(patch.max), 0, 100);
+  if (
+    next.source === a.source &&
+    next.target === a.target &&
+    next.min === a.min &&
+    next.max === a.max
+  ) {
+    return;
+  }
+  const all = arms.slice();
+  all[i] = next;
+  project.value = { ...p, arms: all };
+}
+
+export function removeArm(id: string): void {
+  const p = project.value;
+  const arms = p.arms ?? [];
+  if (!arms.some((a) => a.id === id)) return;
+  project.value = setArms(
+    p,
+    arms.filter((a) => a.id !== id),
+  );
+  if (selection.value.arm === id) selection.value = {};
+}
+
+/** Turns a plugin on (`true`, the default) or off. Off = `bypass: true`. Master can't be turned off. */
+export function setEnabled(id: string, on: boolean): void {
+  if (id === MASTER_ID) return;
+  updateNode(id, (n) => (n.bypass === !on ? n : { ...n, bypass: !on }));
 }

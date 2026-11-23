@@ -3,6 +3,9 @@
 // Events are forwarded through a lookup table rebuilt whenever the plan changes; the router never re-times them.
 // v1.1 control cables: a modulator's `automation` values go to a host-made `ctl:*` input. Volume and pan
 // glide the strip's AudioParam; `ctl:param:<id>` becomes an `automation` event with source 'binding'.
+// v1.2: control edges come from ARM links, mapped through their Min / Max. A plugin that is off
+// (`bypass`) sends nothing. A MIDI plugin's Volume scales the velocity of its note-ons and its Pan goes
+// out as MIDI pan (CC 10). Design: docs/v1.2-redesign.md, "4. Plugin windows" and "7. ARM connections".
 
 import { effect } from '@preact/signals-core';
 import { allNotesOff, beatAt, type PluginEvent, type PluginInstance } from 'ivandaw-core';
@@ -15,9 +18,9 @@ import {
   controlToPan,
   parseControlPort,
 } from '../model/control';
-import { MASTER_ID } from '../model/project';
+import { armMap, clamp, MASTER_ID } from '../model/project';
 import { deps, nodeStatus, project } from '../store/store';
-import { diffWiring, EMPTY_WIRING, eventTable, plan } from './plan';
+import { diffWiring, EMPTY_WIRING, type EventTarget, eventTable, plan } from './plan';
 import { validate } from './validate';
 
 /** Cable gain fade on connect and disconnect. */
@@ -42,6 +45,31 @@ interface AudioLink {
   gain: GainNode;
   source: AudioNode;
 }
+
+/** MIDI pan: CC 10. */
+export const CC_PAN = 10;
+
+/** Pan −1..1 as a CC 10 value 0..127 (64 = centre). */
+export const panToCc = (pan: number): number =>
+  clamp(Math.round(((clamp(pan, -1, 1) + 1) / 2) * 127), 0, 127);
+
+/**
+ * A MIDI plugin's Volume on one of its messages: note-on velocity × gain (at least 1, so a note-on
+ * stays a note-on); a note-on at gain 0 is dropped. Everything else passes unchanged.
+ */
+export function scaleVelocity(
+  bytes: [number, number, number],
+  gain: number,
+): [number, number, number] | undefined {
+  const [status, note, vel] = bytes;
+  if ((status & 0xf0) !== 0x90 || vel === 0 || gain === 1) return bytes;
+  if (gain <= 0) return undefined;
+  return [status, note, clamp(Math.round(vel * gain), 1, 127)];
+}
+
+/** The control value an edge target gets: through the ARM link's Min / Max when it has one. */
+const mapped = (t: Pick<EventTarget, 'range'>, v: number): number =>
+  t.range ? armMap(t.range, v) : v;
 
 const linkKey = (e: WiringEdge): string =>
   `${e.id}|${e.from.node}:${e.from.port}>${e.to.node}:${e.to.port}`;
@@ -81,6 +109,14 @@ export function createRouter(opts: RouterOptions): LiveRouter {
   /** Nodes that were ready at the last sync, to hand newly ready ones the current anchor. */
   let ready = new Set<string>();
   const warned = new Set<string>();
+  /** v1.2: nodes that are off. Their events are not forwarded. */
+  let off = new Set<string>();
+  /** v1.2 MIDI plugins: Volume / Pan while an ARM link drives them (else the project's values). */
+  const midiGain = new Map<string, number>();
+  const midiPan = new Map<string, number>();
+  /** MIDI plugin → the CC 10 value last sent, and the channels it has sent notes on. */
+  const panSent = new Map<string, number>();
+  const channels = new Map<string, Set<number>>();
 
   const report = (node: string, what: string, e: unknown): void => {
     const message = `${what} failed: ${e instanceof Error ? e.message : String(e)}`;
@@ -163,6 +199,16 @@ export function createRouter(opts: RouterOptions): LiveRouter {
       send(node, [{ type: 'automation', time, id: target.id, value, source }]);
       return;
     }
+    if (isMidiStrip(node)) {
+      if (target.kind === 'gain') midiGain.set(node, controlToGain(value));
+      else {
+        midiPan.set(node, controlToPan(value));
+        sendPan(node, time);
+      }
+      return;
+    }
+    // A plugin that is off stays silent: its volume isn't driven.
+    if (target.kind === 'gain' && off.has(node)) return;
     const cp = engine.controlParam(node, target.kind);
     if (!cp) return;
     const v = target.kind === 'gain' ? controlToGain(value) * cp.scale : controlToPan(value);
@@ -175,6 +221,15 @@ export function createRouter(opts: RouterOptions): LiveRouter {
     const node = project.peek().nodes.find((n) => n.id === to.node);
     if (!target || !node) return;
     const now = engine.context.currentTime;
+    if (isMidiStrip(to.node)) {
+      if (target.kind === 'gain') midiGain.delete(to.node);
+      if (target.kind === 'pan') {
+        midiPan.delete(to.node);
+        sendPan(to.node, now);
+      }
+      return;
+    }
+    if (target.kind === 'gain' && node.bypass) return;
     if (target.kind === 'gain' || target.kind === 'pan') {
       const cp = engine.controlParam(to.node, target.kind);
       if (cp) glideTo(cp.param, target.kind === 'gain' ? node.gain * cp.scale : node.pan, now);
@@ -196,7 +251,43 @@ export function createRouter(opts: RouterOptions): LiveRouter {
     } catch (err) {
       report(e.from.node, 'parameter', err);
     }
-    if (value !== undefined) drive(e.to.node, target, value, engine.context.currentTime, 'binding');
+    if (value !== undefined) {
+      drive(e.to.node, target, mapped(e, value), engine.context.currentTime, 'binding');
+    }
+  }
+
+  const nodeOf = (id: string) => project.peek().nodes.find((x) => x.id === id);
+
+  /** True for a node with Volume / Pan but no audio out: a MIDI plugin. */
+  function isMidiStrip(node: string): boolean {
+    if (node === MASTER_ID) return false;
+    const n = nodeOf(node);
+    const m = n ? deps.peek().manifests.get(n.plugin) : undefined;
+    return m?.kind === 'midi' && !m.ports.some((p) => p.kind === 'audio' && p.direction === 'out');
+  }
+
+  /** Sends a MIDI plugin's pan as CC 10 along its notes cables, on every channel it has used. */
+  function sendPan(node: string, time: number, force = false): void {
+    const pan = midiPan.get(node) ?? nodeOf(node)?.pan ?? 0;
+    const cc = panToCc(pan);
+    if (!force && panSent.get(node) === cc) return;
+    panSent.set(node, cc);
+    const chs = channels.get(node) ?? new Set([0]);
+    const t = Math.max(time, engine.context.currentTime);
+    for (const [key, targets] of table) {
+      if (!key.startsWith(`${node}:`)) continue;
+      for (const tg of targets) {
+        send(
+          tg.node,
+          [...chs].map((ch) => ({
+            type: 'midi' as const,
+            time: t,
+            bytes: [0xb0 | ch, CC_PAN, cc] as [number, number, number],
+            port: tg.port,
+          })),
+        );
+      }
+    }
   }
 
   function apply(prev: Wiring, next: Wiring): void {
@@ -215,14 +306,53 @@ export function createRouter(opts: RouterOptions): LiveRouter {
   }
 
   /** Passes an event a node emitted along its cables, unchanged except for the target port. */
-  function forward(from: string, defaultPort: string | undefined, e: PluginEvent): void {
+  function forward(from: string, defaultPort: string | undefined, ev: PluginEvent): void {
+    if (off.has(from)) return;
+    let e = ev;
+    if (e.type === 'midi' && isMidiStrip(from)) {
+      if ((e.bytes[0] & 0xf0) === 0x90 && e.bytes[2] > 0) {
+        const ch = e.bytes[0] & 0x0f;
+        const seen = channels.get(from) ?? new Set<number>();
+        if (!seen.has(ch)) {
+          seen.add(ch);
+          channels.set(from, seen);
+          // A new channel gets the pan before its first note.
+          if ((midiPan.get(from) ?? nodeOf(from)?.pan ?? 0) !== 0) sendPan(from, e.time, true);
+        }
+      }
+      const bytes = scaleVelocity(e.bytes, midiGain.get(from) ?? nodeOf(from)?.gain ?? 1);
+      if (!bytes) return;
+      if (bytes !== e.bytes) e = { ...e, bytes };
+    }
     const port = e.port ?? defaultPort;
     const key = `${from}:${port}`;
     for (const t of table.get(key) ?? []) send(t.node, [{ ...e, port: t.port }]);
     if (e.type !== 'automation') return;
     for (const t of controlTable.get(key) ?? []) {
       const target = parseControlPort(t.port);
-      if (target) drive(t.node, target, e.value, e.time, 'binding');
+      if (target) drive(t.node, target, mapped(t, e.value), e.time, 'binding');
+    }
+  }
+
+  /** Nodes turned off release their notes downstream; MIDI plugins whose Pan changed send CC 10. */
+  function syncNodes(): void {
+    const p = project.peek();
+    const now = engine.context.currentTime;
+    const nowOff = new Set(p.nodes.filter((n) => n.bypass).map((n) => n.id));
+    for (const id of nowOff) {
+      if (off.has(id)) continue;
+      for (const [key, targets] of table) {
+        if (!key.startsWith(`${id}:`)) continue;
+        for (const t of targets) {
+          send(t.node, [{ type: 'midi', time: now, bytes: allNotesOff(), port: t.port }]);
+        }
+      }
+    }
+    off = nowOff;
+    for (const n of p.nodes) {
+      if (midiPan.has(n.id) || !isMidiStrip(n.id)) continue;
+      const sent = panSent.get(n.id);
+      if (sent === undefined ? n.pan !== 0 : sent !== panToCc(n.pan)) sendPan(n.id, now);
     }
   }
 
@@ -266,6 +396,7 @@ export function createRouter(opts: RouterOptions): LiveRouter {
     const next = plan(p, manifests, status);
     apply(current, next);
     current = next;
+    syncNodes();
     const joined = [...nowReady].filter((id) => !ready.has(id));
     ready = nowReady;
     syncListeners();
@@ -310,6 +441,11 @@ export function createRouter(opts: RouterOptions): LiveRouter {
         table = eventTable(current);
         controlTable = eventTable(current, 'control');
         ready = new Set();
+        off = new Set();
+        midiGain.clear();
+        midiPan.clear();
+        panSent.clear();
+        channels.clear();
       };
     },
   };

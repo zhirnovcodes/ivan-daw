@@ -2,7 +2,7 @@
 
 import type { PortInfo } from 'ivandaw-core';
 import type { ValidateResult } from '../contracts/router';
-import { type ManifestMap, mainAudioOut } from '../model/catalog';
+import { hasStrip, type ManifestMap } from '../model/catalog';
 import { parseControlPort } from '../model/control';
 import {
   isSummingInput,
@@ -39,7 +39,7 @@ export function findPort(p: Project, manifests: ManifestMap, ref: PortRef): Host
     const isMaster = node.plugin === MASTER_PLUGIN;
     if (ctl.kind === 'param') {
       if (isMaster) return undefined;
-    } else if (!isMaster && !mainAudioOut(manifest)) {
+    } else if (!hasStrip(node.plugin, manifest)) {
       return undefined;
     }
     return { id: ref.port, label: ref.port, kind: 'modulation', direction: 'in' };
