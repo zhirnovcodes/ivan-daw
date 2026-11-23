@@ -53,7 +53,6 @@ export const mountTransportBar: MountUi = (root) => {
     master.append(row);
     return input;
   };
-  master.append(h('span', 'ivp-master-cap', 'Master'));
   const masterVol = masterRange('Volume', 0, GAIN_MAX);
   const masterPan = masterRange('Pan', -1, 1);
   masterVol.addEventListener('input', () => setGain(MASTER_ID, Number(masterVol.value)));

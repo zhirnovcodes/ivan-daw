@@ -25,7 +25,6 @@ export const PANELS_CSS = `
 .ivp-beat { min-width: 48px; height: 21px; box-sizing: border-box; padding: 3px 6px; box-shadow: var(--w95-sunken); }
 .ivp-spacer { flex: 1; }
 .ivp-master { display: grid; grid-template-columns: auto; gap: 2px; width: 220px; }
-.ivp-master-cap { text-transform: uppercase; line-height: 13px; }
 .ivp-master-row { display: flex; align-items: center; gap: 6px; text-transform: uppercase; }
 .ivp-master-row span { width: 56px; flex: none; }
 .ivp-master-row input { flex: 1; min-width: 0; }
