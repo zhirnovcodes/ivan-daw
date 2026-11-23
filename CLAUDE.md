@@ -2,7 +2,7 @@
 
 IvanDAW is a node-graph DAW in the browser. It runs on localhost only: no hosting, no CI server.
 
-- Current work: v1.1.2 (zoom, hide / show plugin UI, pan limits). Plan and design: `docs/v1.1.2-plan.md`.
+- Current work: v1.2 redesign (Win95 look, sticky notes, ARM connections). Plan and design: `docs/v1.2-redesign.md`.
 - v1.1 plan: `docs/v1.1-plan.md`. Design: `docs/v1.1-tech-design.md`.
 - v1 design: `docs/tech-design.md`. Plugin API: `docs/plugin-api.md`.
 - The design docs are copies of Claude Docs. Change them only when Ivan asks.
