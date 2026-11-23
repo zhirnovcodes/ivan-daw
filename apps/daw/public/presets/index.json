@@ -2,5 +2,9 @@
   {
     "name": "BeatalityOnly",
     "file": "beatalityonly.json"
+  },
+  {
+    "name": "MusicHands",
+    "file": "musichands.json"
   }
 ]

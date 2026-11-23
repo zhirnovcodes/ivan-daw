@@ -1,0 +1,486 @@
+{
+  "format": "ivandaw.project",
+  "version": 1,
+  "transport": {
+    "bpm": 160,
+    "numerator": 4,
+    "denominator": 4
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "plugin": "com.ivandaw.note-hold",
+      "x": 20,
+      "y": 20,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {
+        "run": 0
+      },
+      "state": {
+        "pluginId": "com.ivandaw.note-hold",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "note": 36
+        }
+      }
+    },
+    {
+      "id": "n2",
+      "plugin": "com.beatality.beatality",
+      "x": 420,
+      "y": 20,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.beatality.beatality",
+        "pluginVersion": "0.0.2",
+        "data": {
+          "format": "beatality.pack",
+          "version": 1,
+          "name": "Beatality",
+          "bpm": 120,
+          "loop": 16,
+          "slices": 2,
+          "attack": 8,
+          "volume": 1,
+          "panMin": -0.6,
+          "panMax": 0.55,
+          "bpmSync": true,
+          "retrig": true,
+          "effects": {
+            "enabled": true,
+            "globalPower": 1,
+            "globalChance": 0.61,
+            "beatMin": -2,
+            "beatMax": 1,
+            "delayPower": 0.14548363724946978,
+            "delayChance": 0.49032360339164727,
+            "reverbPower": 0.9210317698478699,
+            "reverbChance": 0.2091303845643997,
+            "reversePower": 0.39623453068733216,
+            "reverseChance": 0.3697301924824714,
+            "filterPower": 0.17942588690519334,
+            "filterChance": 0.26199932557344435,
+            "flangerPower": 0.11099409353733063,
+            "flangerChance": 0.11538497501611711,
+            "trancePower": 0.5565773402929306,
+            "tranceChance": 0.11734203040599823,
+            "shiftPower": 0.7038824043393135,
+            "shiftChance": 0.15960074442625044
+          },
+          "repeat": {
+            "enabled": true,
+            "sizeMin": -3,
+            "sizeMax": 0,
+            "length": -2,
+            "chance": 0.3984223563671113,
+            "mix": 0.6730274605751037,
+            "positions": [true, false, true, false, true, false, true, false]
+          },
+          "chaos": {
+            "trigger": "beats",
+            "value": 0.38,
+            "beatSize": 1,
+            "loopSize": 1,
+            "sliceSize": 0,
+            "groups": [false, true, true, false, false, true, false, false, true, false, false]
+          },
+          "sequence": {
+            "savedCount": 0,
+            "slots": []
+          },
+          "tracks": [
+            {
+              "source": {
+                "type": "internal",
+                "id": "j2 perc dnb 180 BPM 4.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 180,
+              "warpParam": 0
+            },
+            {
+              "source": {
+                "type": "internal",
+                "id": "j2 perc dnb 180 BPM 3.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 180,
+              "warpParam": 0
+            },
+            {
+              "source": {
+                "type": "internal",
+                "id": "j2 perc dnb 180 BPM 2.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 180,
+              "warpParam": 0
+            },
+            {
+              "source": {
+                "type": "internal",
+                "id": "j2 perc dnb 180 BPM 1.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 180,
+              "warpParam": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "master",
+      "plugin": "builtin.master",
+      "x": 1993.1140808824564,
+      "y": 7.237810222535273,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {}
+    },
+    {
+      "id": "n3",
+      "plugin": "com.ivandaw.morph-filter",
+      "x": 1579.941592432519,
+      "y": 63.69986066824623,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.morph-filter",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "dw": 0.5764705882352941,
+          "freq": 0.5215686274509804
+        }
+      }
+    },
+    {
+      "id": "n5",
+      "plugin": "com.ivandaw.musichands",
+      "x": 738.4832051176718,
+      "y": -508.9949435515994,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.musichands",
+        "pluginVersion": "0.1.0",
+        "data": {
+          "v": 1,
+          "params": {
+            "autoRect": 1,
+            "smoothing": 0.55,
+            "velocity": 127,
+            "noteLFist": 48,
+            "noteLPalm": 50,
+            "noteRFist": 60,
+            "noteRPalm": 62
+          },
+          "enabled": [
+            "L:closed_fist",
+            "L:open_palm",
+            "L:palm_x",
+            "L:palm_y",
+            "L:palm_z",
+            "R:closed_fist",
+            "R:open_palm",
+            "R:palm_x",
+            "R:palm_y",
+            "R:palm_z"
+          ],
+          "rects": {
+            "L": {
+              "cx": 0.25,
+              "cy": 0.5,
+              "w": 0.4,
+              "h": 0.7
+            },
+            "R": {
+              "cx": 0.75,
+              "cy": 0.5,
+              "w": 0.4,
+              "h": 0.7
+            }
+          },
+          "deviceId": "00deac8a5bc2eaa37caad16834f3d0f33530cf6f016d6b22672b7daf93676f29"
+        }
+      }
+    },
+    {
+      "id": "n6",
+      "plugin": "com.ivandaw.banana-chords",
+      "x": 952.1538620021772,
+      "y": -862.2815128839936,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.banana-chords",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "v": 1,
+          "params": {
+            "root": 0,
+            "scale": 0,
+            "loop": 32,
+            "chordMin": 1,
+            "chordMax": 3,
+            "octaveMin": 2,
+            "octaveMax": 3,
+            "drift": 0,
+            "density": 0.8,
+            "notesCount": 3
+          },
+          "seeds": [2047511102, 4222623654, 3636056972, 2079406118, 4229501522]
+        }
+      }
+    },
+    {
+      "id": "n7",
+      "plugin": "com.ivandaw.axolotl-pad",
+      "x": 1479.6812342204862,
+      "y": -895.9381353299607,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.axolotl-pad",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "v": 1,
+          "params": {
+            "filterDw1": 0.71875,
+            "filterPos1": 0.4464705882352941,
+            "reverbDw1": 0.3,
+            "reverbFeedback1": 0.2,
+            "delayDw1": 0.47500000000000003,
+            "delayTime1": 0.6923077,
+            "filterDw2": 0.8687499999999999,
+            "filterPos2": 0.6714117647058824,
+            "reverbDw2": 0.3,
+            "reverbFeedback2": 0.2,
+            "delayDw2": 0.40625,
+            "delayTime2": 0.6923077,
+            "oscMix": 0.5764705882352941,
+            "lfo1Amp": 0,
+            "lfo1Time": 0.4736842,
+            "lfo2Amp": 0,
+            "lfo2Time": 0.4736842,
+            "lfo1Type": 2,
+            "lfo1Map": 1,
+            "lfo1Sync": 1,
+            "lfo1Retrig": 0,
+            "lfo1Offset": 0,
+            "lfo2Type": 2,
+            "lfo2Map": 7,
+            "lfo2Sync": 1,
+            "lfo2Retrig": 0,
+            "lfo2Offset": 0,
+            "osc1On": 1,
+            "osc1Sample": 10,
+            "osc1Vol": 0.55,
+            "osc1Pan": -0.6375,
+            "osc2On": 1,
+            "osc2Sample": 10,
+            "osc2Vol": 0.43000000000000005,
+            "osc2Pan": 0.7749999999999999,
+            "osc1Attack": 0.3,
+            "osc1Release": 0.3,
+            "osc2Attack": 0.3,
+            "osc2Release": 0.3,
+            "unisonValue": 0.15,
+            "unisonVoices": 2,
+            "mixType": 1,
+            "lfo3Amp": 0.58125,
+            "lfo3Time": 0.9861842,
+            "lfo3Type": 2,
+            "lfo3Map": 12,
+            "lfo3Sync": 1,
+            "lfo3Retrig": 0,
+            "lfo3Offset": 0,
+            "osc1Oct": 0,
+            "osc2Oct": 0,
+            "osc1Detune": -4.200000000000003,
+            "osc2Detune": 3.900000000000002
+          },
+          "fxOrder": [[2, 0, 1], [2, 0, 1]]
+        }
+      }
+    }
+  ],
+  "cables": [
+    {
+      "id": "c1",
+      "from": {
+        "node": "n1",
+        "port": "out"
+      },
+      "to": {
+        "node": "n2",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c3",
+      "from": {
+        "node": "n2",
+        "port": "out"
+      },
+      "to": {
+        "node": "n3",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c4",
+      "from": {
+        "node": "n3",
+        "port": "out"
+      },
+      "to": {
+        "node": "master",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c5",
+      "from": {
+        "node": "n7",
+        "port": "out"
+      },
+      "to": {
+        "node": "master",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c6",
+      "from": {
+        "node": "n6",
+        "port": "out"
+      },
+      "to": {
+        "node": "n7",
+        "port": "in"
+      }
+    }
+  ],
+  "notes": [
+    {
+      "id": "s2",
+      "x": 590,
+      "y": -701,
+      "w": 300,
+      "h": 180,
+      "text": "Press PLAY and move your hands!"
+    }
+  ],
+  "arms": [
+    {
+      "id": "a3",
+      "from": {
+        "node": "n5",
+        "index": 1
+      },
+      "to": {
+        "node": "n3",
+        "index": 1
+      },
+      "source": "l-x",
+      "target": "ctl:param:dw",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "id": "a4",
+      "from": {
+        "node": "n5",
+        "index": 2
+      },
+      "to": {
+        "node": "n3",
+        "index": 2
+      },
+      "source": "l-y",
+      "target": "ctl:param:freq",
+      "min": 100,
+      "max": 0
+    },
+    {
+      "id": "a5",
+      "from": {
+        "node": "n5",
+        "index": 3
+      },
+      "to": {
+        "node": "n7",
+        "index": 1
+      },
+      "source": "r-x",
+      "target": "ctl:param:filterPos1",
+      "min": 7,
+      "max": 82
+    },
+    {
+      "id": "a6",
+      "from": {
+        "node": "n5",
+        "index": 4
+      },
+      "to": {
+        "node": "n7",
+        "index": 2
+      },
+      "source": "r-y",
+      "target": "ctl:param:filterPos2",
+      "min": 79,
+      "max": 25
+    },
+    {
+      "id": "a7",
+      "from": {
+        "node": "n5",
+        "index": 5
+      },
+      "to": {
+        "node": "n7",
+        "index": 4
+      },
+      "source": "l-x",
+      "target": "ctl:param:oscMix",
+      "min": 0,
+      "max": 100
+    }
+  ]
+}
