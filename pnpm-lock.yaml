@@ -39,6 +39,8 @@ importers:
 
   plugins/axolotl-pad: {}
 
+  plugins/banana-chords: {}
+
   plugins/base-sine-synth:
     dependencies:
       ivandaw-core:

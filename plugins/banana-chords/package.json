@@ -1,0 +1,12 @@
+{
+  "name": "@ivandaw/banana-chords",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Banana Chords, prebuilt by banana-chords' CI. dist/ is downloaded by scripts/fetch-plugins.mjs, never built here.",
+  "ivandaw": {
+    "id": "com.ivandaw.banana-chords",
+    "repo": "zhirnovcodes/banana-chords",
+    "asset": "banana-chords-daw.zip",
+    "release": "daw-build-3"
+  }
+}
