@@ -91,7 +91,7 @@ export const CANVAS_CSS = `
 .ivd-zoombar button:active { box-shadow: var(--w95-pressed); }
 .ivd-zoombar button:focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
 .ivd-zoom-step { width: 23px; }
-.ivd-zoombar .ivd-zoom { min-width: 52px; padding: 0 6px; background: var(--w95-field); box-shadow: var(--w95-sunken); }
+.ivd-zoombar .ivd-zoom { width: 52px; box-sizing: border-box; padding: 0 6px; background: var(--w95-field); box-shadow: var(--w95-sunken); }
 
 .ivd-toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); background: var(--w95-face); color: #000;
   box-shadow: var(--w95-raised); padding: 8px 14px; font: 13px var(--w95-font); z-index: 1000; pointer-events: none; }

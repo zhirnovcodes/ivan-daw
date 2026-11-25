@@ -7,7 +7,8 @@ test('a sticky note: create, format, move, delete', async ({ page }) => {
   await openDemo(page);
   await page.getByRole('button', { name: 'Sticky note' }).click();
   await page.keyboard.type('**hi** <https://example.com/a>');
-  await page.locator('.ivd-canvas').click({ position: { x: 1500, y: 900 } });
+  // Empty canvas, above the bottom scrollbar.
+  await page.locator('.ivd-canvas').click({ position: { x: 1500, y: 800 } });
   const note = page.locator('.ivd-note[data-note]');
   await expect(note.locator('b')).toHaveText('hi');
   await expect(note.locator('a')).toHaveAttribute('href', 'https://example.com/a');

@@ -30,7 +30,8 @@ const CSS = `
 html, body { margin: 0; height: 100%; overflow: hidden; }
 body { font: 13px/1.2 var(--w95-font); color: #000; background: var(--w95-desk); -webkit-font-smoothing: none; }
 #ivd-shell { position: fixed; inset: 0; --ivd-top-h: 88px; }
-#ivd-canvas { position: absolute; left: 0; right: 0; bottom: 0; top: var(--ivd-top-h); overflow: hidden; }
+/* The canvas starts at the top panel's bottom edge (16 + 64 px), so the right scrollbar can touch it. */
+#ivd-canvas { position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--ivd-top-h) - 8px); overflow: hidden; }
 #ivd-top { position: absolute; left: 16px; right: 16px; top: 16px; height: calc(var(--ivd-top-h) - 24px); box-sizing: border-box; z-index: 50; display: flex; align-items: stretch;
   background: var(--w95-face); box-shadow: var(--w95-raised); padding: 2px; }
 #app { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }

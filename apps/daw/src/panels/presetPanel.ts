@@ -13,7 +13,7 @@ import { panelServices } from './services';
 import { titleBar } from './w95';
 
 const CSS = `
-.ivp-presets { position: absolute; right: 16px; bottom: 16px; z-index: 60; width: 240px; display: flex; flex-direction: column; }
+.ivp-presets { position: absolute; right: 53px; bottom: 53px; z-index: 60; width: 240px; display: flex; flex-direction: column; }
 .ivp-presets-body { display: flex; flex-direction: column; gap: 6px; padding: 6px 4px 4px; }
 .ivp-presets-name { width: 100%; }
 .ivp-presets-list { list-style: none; margin: 0; padding: 2px; height: 120px; overflow-y: auto; background: var(--w95-field);

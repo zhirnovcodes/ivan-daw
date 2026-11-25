@@ -3,6 +3,8 @@ import { openDemo } from './helpers';
 
 // v1.1.2 T2: `-` folds a plugin's UI away; `+` brings back the same UI, still mounted.
 test('hide and show Beatality keeps its UI and its state', async ({ page }) => {
+  // Wide enough that Beatality's title bar is clear of the right scrollbar.
+  await page.setViewportSize({ width: 1600, height: 1000 });
   await openDemo(page);
   const node = page.locator('.ivd-node[data-node="n2"]');
   const slot = page.locator('.ivd-ui[data-ui="n2"]');
@@ -37,6 +39,7 @@ test('hide and show Beatality keeps its UI and its state', async ({ page }) => {
 });
 
 test('the button works in play-only mode too', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
   await openDemo(page, '/?mode=play_only');
   const node = page.locator('.ivd-node[data-node="n2"]');
   await node.getByRole('button', { name: 'Hide plugin' }).click();

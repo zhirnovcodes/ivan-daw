@@ -73,6 +73,7 @@ import { armName, displayNames } from './names';
 import { mountNotes } from './notes';
 import { renderNoteText } from './noteText';
 import { permits, playTarget } from './playOnly';
+import { extentsOf, mountScrollbars, SCROLLBAR_CSS } from './scrollbars';
 import { canvasServices } from './services';
 import { CANVAS_CSS } from './styles';
 import {
@@ -97,7 +98,7 @@ function ensureStyles(): void {
   ensureW95();
   if (styleEl?.isConnected) return;
   styleEl = document.createElement('style');
-  styleEl.textContent = CANVAS_CSS;
+  styleEl.textContent = CANVAS_CSS + SCROLLBAR_CSS;
   document.head.appendChild(styleEl);
 }
 
@@ -275,16 +276,43 @@ export const mountCanvas: MountUi = (root) => {
   const hitR = (): number => PORT_HIT_R / Math.min(1, camera.peek().z);
 
   /** The pan limit (v1.1.2): the view centre stays inside the box around all nodes. */
-  const fit = (next: Camera, prev: Camera): Camera => {
+  const nodeBounds = (): Rect | undefined => {
     const boxes: Rect[] = [];
     for (const n of project.peek().nodes) {
       const sz = sizeOf(n.id);
       boxes.push({ left: n.x, top: n.y, right: n.x + sz.w, bottom: n.y + sz.h });
     }
+    return boundsOf(boxes);
+  };
+  const fit = (next: Camera, prev: Camera): Camera => {
     const view = { w: canvas.clientWidth, h: canvas.clientHeight };
     if (view.w === 0 || view.h === 0) return next;
-    return clampCamera(next, prev, view, boundsOf(boxes));
+    return clampCamera(next, prev, view, nodeBounds());
   };
+
+  // Page scrollbars, right and bottom: they read and move the camera, with the same pan limit.
+  const scrollbars = mountScrollbars(
+    canvas,
+    () => {
+      const c = camera.peek();
+      return {
+        ...extentsOf(c, { w: canvas.clientWidth, h: canvas.clientHeight }, nodeBounds()),
+        z: c.z,
+      };
+    },
+    (dx, dy) => panCamera(dx, dy, fit),
+  );
+  // Updated after layout (window sizes come from the render), at most once a frame.
+  let scrollFrame = 0;
+  const scheduleScrollbars = (): void => {
+    if (scrollFrame) return;
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0;
+      scrollbars.update();
+    });
+  };
+  const resizeObs = new ResizeObserver(scheduleScrollbars);
+  resizeObs.observe(canvas);
   const viewCenter = (): Pt => ({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
 
   function run(e: Effect): void {
@@ -496,6 +524,11 @@ export const mountCanvas: MountUi = (root) => {
     const c = camera.value;
     world.style.transform = `translate(${-c.x * c.z}px, ${-c.y * c.z}px) scale(${c.z})`;
     zoomLabel.textContent = `${Math.round(c.z * 100)}%`;
+    scheduleScrollbars();
+  });
+  const stopScrollProject = effect(() => {
+    void project.value;
+    scheduleScrollbars();
   });
 
   // ---- Plugin info notes (`?`): read-only, not saved, one per plugin. ----
@@ -1088,6 +1121,10 @@ export const mountCanvas: MountUi = (root) => {
   return () => {
     stop();
     stopCamera();
+    stopScrollProject();
+    cancelAnimationFrame(scrollFrame);
+    resizeObs.disconnect();
+    scrollbars.dispose();
     stopNotes();
     closeConn();
     document.removeEventListener('keydown', onKey);
