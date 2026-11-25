@@ -1,0 +1,12 @@
+{
+  "name": "@ivandaw/brimstone-bass",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Brimstone Bass, prebuilt by brimstone-bass's CI. dist/ is downloaded by scripts/fetch-plugins.mjs, never built here.",
+  "ivandaw": {
+    "id": "com.ivandaw.brimstone-bass",
+    "repo": "zhirnovcodes/brimstone-bass",
+    "asset": "brimstone-bass-daw.zip",
+    "release": "daw-build-4"
+  }
+}
