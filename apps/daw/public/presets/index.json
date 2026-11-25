@@ -6,5 +6,9 @@
   {
     "name": "MusicHands",
     "file": "musichands.json"
+  },
+  {
+    "name": "BrimstoneBass",
+    "file": "brimstonebass.json"
   }
 ]
