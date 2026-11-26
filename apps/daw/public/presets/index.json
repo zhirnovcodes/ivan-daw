@@ -18,5 +18,10 @@
     "name": "BeatalityOnly",
     "mobile": true,
     "file": "beatalityonly.mobile.json"
+  },
+  {
+    "name": "AllInstruments",
+    "mobile": false,
+    "file": "allinstruments.json"
   }
 ]

@@ -1,0 +1,697 @@
+{
+  "format": "ivandaw.project",
+  "version": 1,
+  "transport": {
+    "bpm": 120,
+    "numerator": 4,
+    "denominator": 4
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "plugin": "com.ivandaw.note-hold",
+      "x": 20,
+      "y": 20,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {
+        "run": 0
+      },
+      "state": {
+        "pluginId": "com.ivandaw.note-hold",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "note": 36
+        }
+      }
+    },
+    {
+      "id": "n2",
+      "plugin": "com.beatality.beatality",
+      "x": 420,
+      "y": 20,
+      "gain": 1.05,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.beatality.beatality",
+        "pluginVersion": "0.0.2",
+        "data": {
+          "format": "beatality.pack",
+          "version": 1,
+          "name": "Beatality",
+          "bpm": 120,
+          "loop": 16,
+          "slices": 2,
+          "attack": 2,
+          "volume": 1,
+          "panMin": -0.55,
+          "panMax": 0.55,
+          "bpmSync": true,
+          "retrig": true,
+          "effects": {
+            "enabled": true,
+            "globalPower": 0.69,
+            "globalChance": 0.36,
+            "beatMin": -2,
+            "beatMax": 0,
+            "delayPower": 0.6207592074990272,
+            "delayChance": 0.29517645400762554,
+            "reverbPower": 0.10364135962724687,
+            "reverbChance": 0.5391269640326499,
+            "reversePower": 0.9009811350226402,
+            "reverseChance": 0.15623727244138716,
+            "filterPower": 0.7706982613444329,
+            "filterChance": 0.34792664438486093,
+            "flangerPower": 0.5384962007641793,
+            "flangerChance": 0.38963954925537103,
+            "trancePower": 0.4936883305072785,
+            "tranceChance": 0.33873586708307263,
+            "shiftPower": 0.253382352077961,
+            "shiftChance": 0.08182283288240433
+          },
+          "repeat": {
+            "enabled": true,
+            "sizeMin": -3,
+            "sizeMax": -2,
+            "length": -1,
+            "chance": 0.3863644428253174,
+            "mix": 0.2606164610385895,
+            "positions": [true, true, false, true, true, true, false, true]
+          },
+          "chaos": {
+            "trigger": "loop",
+            "value": 0.34,
+            "beatSize": -1,
+            "loopSize": 1,
+            "sliceSize": 0,
+            "groups": [false, true, true, false, false, true, false, true, true, false, false]
+          },
+          "sequence": {
+            "savedCount": 0,
+            "slots": []
+          },
+          "tracks": [
+            {
+              "source": {
+                "type": "internal",
+                "id": "svarog dnb drums 180 BPM 4.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 180,
+              "warpParam": 0
+            },
+            {
+              "source": {
+                "type": "internal",
+                "id": "svarog dnb drums 180 BPM 3.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 180,
+              "warpParam": 0
+            },
+            {
+              "source": {
+                "type": "internal",
+                "id": "svarog dnb drums 180 BPM 2.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 180,
+              "warpParam": 0
+            },
+            {
+              "source": {
+                "type": "internal",
+                "id": "svarog dnb drums 180 BPM 1.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 180,
+              "warpParam": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "master",
+      "plugin": "builtin.master",
+      "x": 1653.1521197356442,
+      "y": 48.605405306824764,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {}
+    },
+    {
+      "id": "n5",
+      "plugin": "com.ivandaw.morph-filter",
+      "x": 1321.4787661687185,
+      "y": 195.7806958538379,
+      "gain": 1.5,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.morph-filter",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "dw": 1,
+          "freq": 0.7266666666666667
+        }
+      }
+    },
+    {
+      "id": "n6",
+      "plugin": "com.ivandaw.banana-chords",
+      "x": 409.0455595357349,
+      "y": -302.7490315099562,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.banana-chords",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "v": 1,
+          "params": {
+            "root": 0,
+            "scale": 0,
+            "loop": 16,
+            "chordMin": 2,
+            "chordMax": 3,
+            "octaveMin": 2,
+            "octaveMax": 3,
+            "drift": 0,
+            "density": 0.8,
+            "notesCount": 3
+          }
+        }
+      }
+    },
+    {
+      "id": "n7",
+      "plugin": "com.ivandaw.axolotl-pad",
+      "x": 919.5397668328926,
+      "y": -488.0779877291993,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.axolotl-pad",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "v": 1,
+          "params": {
+            "filterDw1": 0.5875,
+            "filterPos1": 0.7125,
+            "reverbDw1": 0.7437499999999999,
+            "reverbFeedback1": 0.375,
+            "delayDw1": 0.2,
+            "delayTime1": 0.6923077,
+            "filterDw2": 0.68125,
+            "filterPos2": 0.275,
+            "reverbDw2": 0.51875,
+            "reverbFeedback2": 0.2,
+            "delayDw2": 0.875,
+            "delayTime2": 0.6485577,
+            "oscMix": 0.5,
+            "lfo1Amp": 0.6499999999999999,
+            "lfo1Time": 0.8236842,
+            "lfo2Amp": 0.35,
+            "lfo2Time": 0.9424342,
+            "lfo1Type": 2,
+            "lfo1Map": 1,
+            "lfo1Sync": 1,
+            "lfo1Retrig": 0,
+            "lfo1Offset": 0,
+            "lfo2Type": 2,
+            "lfo2Map": 7,
+            "lfo2Sync": 1,
+            "lfo2Retrig": 0,
+            "lfo2Offset": 0,
+            "osc1On": 1,
+            "osc1Sample": 0,
+            "osc1Vol": 1,
+            "osc1Pan": 0,
+            "osc2On": 1,
+            "osc2Sample": 3,
+            "osc2Vol": 1,
+            "osc2Pan": 0,
+            "osc1Attack": 0.3,
+            "osc1Release": 0.3,
+            "osc2Attack": 0.3,
+            "osc2Release": 0.3,
+            "unisonValue": 0.15,
+            "unisonVoices": 0,
+            "mixType": 1,
+            "lfo3Amp": 0.78125,
+            "lfo3Time": 1,
+            "lfo3Type": 2,
+            "lfo3Map": 12,
+            "lfo3Sync": 1,
+            "lfo3Retrig": 0,
+            "lfo3Offset": 0,
+            "osc1Oct": 0,
+            "osc2Oct": 0,
+            "osc1Detune": 0,
+            "osc2Detune": 0
+          },
+          "fxOrder": [[2, 0, 1], [2, 0, 1]]
+        }
+      }
+    },
+    {
+      "id": "n8",
+      "plugin": "com.ivandaw.choko-arpegio",
+      "x": 853.2277976786748,
+      "y": -803.3729698183921,
+      "gain": 1.5,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.choko-arpegio",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "v": 1,
+          "params": {
+            "loop": 2,
+            "noteLengthMin": -2,
+            "noteLengthMax": -2,
+            "legato": 0,
+            "sustainMin": -3,
+            "sustainMax": -2,
+            "swing": 0,
+            "retrig": 1,
+            "chaosValue": 0.5,
+            "chaosTrigger": 0,
+            "chaosLoop": 0,
+            "chaosBeat": 2,
+            "chaosShuffle": 1,
+            "chaosLength": 0,
+            "chaosSwing": 0,
+            "chaosSustain": 0,
+            "chaosChaos": 0,
+            "rng": 0.337592793418195,
+            "chaosRng": 0
+          },
+          "seeds": [2776557055, 1234092346, 306176505, 2662465384]
+        }
+      }
+    },
+    {
+      "id": "n9",
+      "plugin": "com.ivandaw.brimstone-bass",
+      "x": 1259.0339741300504,
+      "y": -927.8316570489134,
+      "gain": 1.5,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.brimstone-bass",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "v": 1,
+          "params": {
+            "filterDw1": 0.9937499999999999,
+            "filterPos1": 0.7,
+            "reverbDw1": 0.3,
+            "reverbFeedback1": 0.2,
+            "delayDw1": 0.3125,
+            "delayTime1": 0.6360577,
+            "filterDw2": 0.5375,
+            "filterPos2": 0.75625,
+            "reverbDw2": 0.3,
+            "reverbFeedback2": 0.2,
+            "delayDw2": 0.2,
+            "delayTime2": 0.6923077,
+            "oscMix": 0.3875,
+            "lfo1Amp": 0.3875,
+            "lfo1Time": 0.6236842,
+            "lfo2Amp": 0,
+            "lfo2Time": 0.4736842,
+            "lfo1Type": 3,
+            "lfo1Map": 1,
+            "lfo1Sync": 1,
+            "lfo1Retrig": 0,
+            "lfo1Offset": 0,
+            "lfo2Type": 2,
+            "lfo2Map": 7,
+            "lfo2Sync": 1,
+            "lfo2Retrig": 0,
+            "lfo2Offset": 0,
+            "osc1On": 1,
+            "osc1Sample": 0,
+            "osc1Vol": 1,
+            "osc1Pan": 0,
+            "osc2On": 1,
+            "osc2Sample": 2,
+            "osc2Vol": 1,
+            "osc2Pan": 0,
+            "osc1Attack": 0,
+            "osc1Release": 0,
+            "osc2Attack": 0,
+            "osc2Release": 0,
+            "unisonValue": 0.15,
+            "unisonVoices": 0,
+            "mixType": 1,
+            "lfo3Amp": 0,
+            "lfo3Time": 0.4736842,
+            "lfo3Type": 2,
+            "lfo3Map": 12,
+            "lfo3Sync": 1,
+            "lfo3Retrig": 0,
+            "lfo3Offset": 0,
+            "osc1Oct": -2,
+            "osc2Oct": -2,
+            "osc1Detune": 0,
+            "osc2Detune": 0,
+            "osc1Sustain": 0.45446008609622773,
+            "osc1Decay": 0.0645920416070886,
+            "osc2Sustain": 0.5974070455182916,
+            "osc2Decay": 0.1
+          },
+          "fxOrder": [[2, 0, 1], [2, 0, 1]]
+        }
+      }
+    },
+    {
+      "id": "n11",
+      "plugin": "com.beatality.beatality",
+      "x": 430.29792096055485,
+      "y": 832.8705628162216,
+      "gain": 1,
+      "pan": 0,
+      "bypass": true,
+      "params": {},
+      "state": {
+        "pluginId": "com.beatality.beatality",
+        "pluginVersion": "0.0.2",
+        "data": {
+          "format": "beatality.pack",
+          "version": 1,
+          "name": "Beatality",
+          "bpm": 120,
+          "loop": 16,
+          "slices": -1,
+          "attack": 2,
+          "volume": 1,
+          "panMin": -0.39892270088195797,
+          "panMax": 0.6220801073312759,
+          "bpmSync": true,
+          "retrig": true,
+          "effects": {
+            "enabled": true,
+            "globalPower": 0.86,
+            "globalChance": 0.31,
+            "beatMin": -3,
+            "beatMax": 0,
+            "delayPower": 0.42,
+            "delayChance": 0.37,
+            "reverbPower": 0.45,
+            "reverbChance": 0.41,
+            "reversePower": 0.54,
+            "reverseChance": 0.54,
+            "filterPower": 0.51,
+            "filterChance": 0.42,
+            "flangerPower": 0.44,
+            "flangerChance": 0.35,
+            "trancePower": 0.34,
+            "tranceChance": 0.5,
+            "shiftPower": 0,
+            "shiftChance": 0
+          },
+          "repeat": {
+            "enabled": true,
+            "sizeMin": -4,
+            "sizeMax": -3,
+            "length": 1,
+            "chance": 0.30955785655975343,
+            "mix": 0.6597063815593719,
+            "positions": [false, true, true, false, false, false, false, true]
+          },
+          "chaos": {
+            "trigger": "loop",
+            "value": 0.69,
+            "beatSize": 0,
+            "loopSize": 1,
+            "sliceSize": 0,
+            "groups": [true, false, true, false, false, false, false, true, true, false, false]
+          },
+          "sequence": {
+            "savedCount": 0,
+            "slots": []
+          },
+          "tracks": [
+            {
+              "source": {
+                "type": "internal",
+                "id": "xolotl2.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 115,
+              "warpParam": 0
+            },
+            {
+              "source": {
+                "type": "internal",
+                "id": "xolotl1.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 115,
+              "warpParam": 0
+            },
+            {
+              "source": {
+                "type": "internal",
+                "id": "orgolorg drums 2.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 115,
+              "warpParam": 0
+            },
+            {
+              "source": {
+                "type": "internal",
+                "id": "orgolorg drums 1.wav"
+              },
+              "start": 0,
+              "length": 1,
+              "loop": false,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 115,
+              "warpParam": 0
+            },
+            {
+              "source": {
+                "type": "internal",
+                "id": "orgolorg drums 2.wav"
+              },
+              "start": 0.4999995659725989,
+              "length": 1,
+              "loop": true,
+              "volume": 1,
+              "pan": 0,
+              "warp": "pitch",
+              "bpm": 115,
+              "warpParam": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "cables": [
+    {
+      "id": "c1",
+      "from": {
+        "node": "n1",
+        "port": "out"
+      },
+      "to": {
+        "node": "n2",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c3",
+      "from": {
+        "node": "n2",
+        "port": "out"
+      },
+      "to": {
+        "node": "n5",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c4",
+      "from": {
+        "node": "n5",
+        "port": "out"
+      },
+      "to": {
+        "node": "master",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c5",
+      "from": {
+        "node": "n7",
+        "port": "out"
+      },
+      "to": {
+        "node": "master",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c6",
+      "from": {
+        "node": "n6",
+        "port": "out"
+      },
+      "to": {
+        "node": "n7",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c7",
+      "from": {
+        "node": "n6",
+        "port": "out"
+      },
+      "to": {
+        "node": "n8",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c8",
+      "from": {
+        "node": "n9",
+        "port": "out"
+      },
+      "to": {
+        "node": "master",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c9",
+      "from": {
+        "node": "n8",
+        "port": "out"
+      },
+      "to": {
+        "node": "n9",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c11",
+      "from": {
+        "node": "n11",
+        "port": "out"
+      },
+      "to": {
+        "node": "master",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c12",
+      "from": {
+        "node": "n1",
+        "port": "out"
+      },
+      "to": {
+        "node": "n11",
+        "port": "in"
+      }
+    }
+  ],
+  "notes": [
+    {
+      "id": "s1",
+      "x": 50,
+      "y": 845,
+      "w": 300,
+      "h": 180,
+      "text": "Turn on this beatality plugin by clicking checkbox for some groove!!!"
+    },
+    {
+      "id": "s2",
+      "x": 1692,
+      "y": 270,
+      "w": 300,
+      "h": 180,
+      "text": "Try spinning FREQ knob!"
+    },
+    {
+      "id": "s3",
+      "x": 486,
+      "y": -735,
+      "w": 239,
+      "h": 142,
+      "text": "Press Play!\nExplore the interface by scrolling left, right, up and down!\nYou can also zoom the page"
+    },
+    {
+      "id": "s4",
+      "x": 500,
+      "y": -461,
+      "w": 156,
+      "h": 119,
+      "text": "Press Shuffle to change chords progression"
+    }
+  ],
+  "view": {
+    "x": 243.82899071507177,
+    "y": -890.0796951388356,
+    "z": 0.8844605940704866
+  }
+}
