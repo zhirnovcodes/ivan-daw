@@ -8,7 +8,7 @@ import { effect } from '@preact/signals-core';
 import type { ParameterInfo } from 'ivandaw-core';
 import { REFUSE_TEXT } from '../contracts/router';
 import type { MountUi } from '../contracts/ui';
-import { hasStrip, type PortsManifest } from '../model/catalog';
+import { coveredOnMobile, hasStrip, type PortsManifest } from '../model/catalog';
 import { CTL_GAIN, CTL_PAN } from '../model/control';
 import { pluginInfo } from '../model/pluginInfo';
 import {
@@ -72,10 +72,11 @@ import {
 import { armName, displayNames } from './names';
 import { mountNotes } from './notes';
 import { renderNoteText } from './noteText';
-import { permits, playTarget } from './playOnly';
+import { permits, playTarget, wiringLocked } from './playOnly';
 import { extentsOf, mountScrollbars, SCROLLBAR_CSS } from './scrollbars';
 import { canvasServices } from './services';
 import { CANVAS_CSS } from './styles';
+import { fitView, mountTouchCamera } from './touch';
 import {
   armDot,
   type Box,
@@ -170,6 +171,8 @@ interface NodeView {
   ui?: { box: { width: number; height: number }; frame: HTMLElement; slot: HTMLElement };
   params?: { el: HTMLElement; key: string; dispose: () => void };
   footer?: { el: HTMLElement; vol: HTMLInputElement; pan: HTMLInputElement };
+  /** Mobile mode: the see-through cover over a plugin window that takes no touches. */
+  cover?: HTMLElement;
 }
 
 const portLite = (manifest: PortsManifest | undefined, dir: 'in' | 'out'): PortLite[] =>
@@ -183,8 +186,11 @@ const modOuts = (manifest: PortsManifest | undefined) =>
 export const mountCanvas: MountUi = (root) => {
   ensureStyles();
   const canvas = h('div', 'ivd-canvas');
-  // Play-only: cables are drawn dashed and can't be hovered or clicked.
-  canvas.classList.toggle('ivd-play', mode.peek() === 'play');
+  // Play-only and mobile: cables are drawn dashed and can't be hovered or clicked.
+  canvas.classList.toggle('ivd-play', wiringLocked(mode.peek()));
+  // Mobile: fingers move the camera; plugin windows are covered (see `syncCover`).
+  const mobile = mode.peek() === 'mobile';
+  canvas.classList.toggle('ivd-mobile', mobile);
   const svg = s('svg', {}, 'ivd-cables');
   const cableLayer = s('g');
   const tempPath = s('path', {}, 'ivd-cable temp');
@@ -314,6 +320,53 @@ export const mountCanvas: MountUi = (root) => {
   const resizeObs = new ResizeObserver(scheduleScrollbars);
   resizeObs.observe(canvas);
   const viewCenter = (): Pt => ({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
+
+  // ---- Mobile: finger pan and pinch zoom; the view fits all plugins until the first touch. ----
+  let fitting = mobile;
+  let fitFrame = 0;
+  const fitAll = (): void => {
+    const bounds = nodeBounds();
+    const view = { w: canvas.clientWidth, h: canvas.clientHeight };
+    if (!bounds || view.w === 0 || view.h === 0) return;
+    const want = fitView(bounds, view);
+    resetZoom({ x: 0, y: 0 });
+    zoomAt({ x: 0, y: 0 }, Math.log2(want.z));
+    const c = camera.peek();
+    panCamera(want.x - c.x, want.y - c.y);
+  };
+  const scheduleFit = (): void => {
+    if (!fitting || fitFrame) return;
+    fitFrame = requestAnimationFrame(() => {
+      fitFrame = 0;
+      if (fitting) fitAll();
+    });
+  };
+  const fitObs = new ResizeObserver(scheduleFit);
+  if (mobile) fitObs.observe(canvas);
+  const stopTouch = mobile
+    ? mountTouchCamera(canvas, {
+        screenPt,
+        apply: (st) => {
+          const z = camera.peek().z;
+          panCamera(-st.dx / z, -st.dy / z, fit);
+          if (st.dLevel !== 0) zoomAt(st.at, st.dLevel, fit);
+        },
+        // Uncovered windows (Master, plugins with mobileCover: false) keep their controls and UI.
+        passThrough: (t) => {
+          // The zoom panel and the page scrollbars keep their own drags (and end the auto-fit).
+          if (zoomPanel.contains(t) || t.closest('.ivd-sbar, .ivd-sbar-corner')) {
+            fitting = false;
+            return true;
+          }
+          const node = t.closest('.ivd-node');
+          if (!node || node.classList.contains('ivd-covered')) return false;
+          return t.closest('input, select, textarea, button, a, label, .ivd-ui') !== null;
+        },
+        onFirstGesture: () => {
+          fitting = false;
+        },
+      })
+    : () => {};
 
   function run(e: Effect): void {
     if (!permits(mode.peek(), e)) return;
@@ -516,6 +569,9 @@ export const mountCanvas: MountUi = (root) => {
     { passive: false },
   );
 
+  zoomPanel.addEventListener('click', () => {
+    fitting = false;
+  });
   zoomLabel.addEventListener('click', () => resetZoom(viewCenter(), fit));
   zoomOut.addEventListener('click', () => zoomAt(viewCenter(), -KEY_STEP, fit));
   zoomIn.addEventListener('click', () => zoomAt(viewCenter(), KEY_STEP, fit));
@@ -592,6 +648,16 @@ export const mountCanvas: MountUi = (root) => {
     v.el.querySelector(':scope > .w95-titlebar')?.remove();
     const isMaster = v.plugin === MASTER_PLUGIN;
     const buttons: Parameters<typeof titleBar>[1][number][] = [];
+    // Mobile: a bare title bar, no on / off box and no buttons.
+    if (mobile) {
+      const { bar, caption } = titleBar(v.manifest?.name ?? v.plugin, []);
+      bar.classList.add('ivd-header');
+      v.caption = caption;
+      v.fold = undefined;
+      v.check = undefined;
+      v.el.prepend(bar);
+      return;
+    }
     if (!isMaster) {
       buttons.push({ label: '?', title: 'About this plugin', onClick: () => toggleInfo(id) });
     }
@@ -604,7 +670,7 @@ export const mountCanvas: MountUi = (root) => {
     }
     if (!isMaster) {
       // Play-only: the X stays, greyed out.
-      const locked = mode.peek() === 'play';
+      const locked = wiringLocked(mode.peek());
       buttons.push({
         label: 'X',
         title: 'Remove plugin',
@@ -634,6 +700,25 @@ export const mountCanvas: MountUi = (root) => {
       down(e, { kind: 'header', node: id, nodePos: nodePos(id) }, bar),
     );
     v.el.prepend(bar);
+  }
+
+  /**
+   * Mobile: a covered window gets a see-through cover on top and its content is made inert, so
+   * no touch, click or focus reaches the plugin; a drag over it pans the camera.
+   */
+  function syncCover(v: NodeView): void {
+    const covered = mobile && coveredOnMobile(v.plugin, v.manifest);
+    v.el.classList.toggle('ivd-covered', covered);
+    v.el.inert = covered;
+    if (covered && !v.cover) {
+      v.cover = h('div', 'ivd-cover'); // z-index: above everything the window holds
+      v.cover.setAttribute('aria-hidden', 'true');
+      v.el.append(v.cover);
+    }
+    if (!covered) {
+      v.cover?.remove();
+      v.cover = undefined;
+    }
   }
 
   /** The slot a plugin's own UI is mounted into (by the app shell), in a sunken frame. */
@@ -810,6 +895,7 @@ export const mountCanvas: MountUi = (root) => {
         buildTitle(n.id, v);
         buildUi(n.id, v);
         buildFooter(n.id, v);
+        syncCover(v);
         v.sig = '';
       }
       const st = status[n.id] ?? 'loading';
@@ -880,6 +966,7 @@ export const mountCanvas: MountUi = (root) => {
     renderCables();
     renderConnection();
     drawOverlay();
+    scheduleFit();
   }
 
   function renderCables(): void {
@@ -1120,6 +1207,9 @@ export const mountCanvas: MountUi = (root) => {
 
   return () => {
     stop();
+    stopTouch();
+    fitObs.disconnect();
+    cancelAnimationFrame(fitFrame);
     stopCamera();
     stopScrollProject();
     cancelAnimationFrame(scrollFrame);

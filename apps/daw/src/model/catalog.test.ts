@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   type CatalogEntry,
+  coveredOnMobile,
   MASTER_MANIFEST,
   mainAudioOut,
   manifestsFrom,
@@ -52,6 +53,17 @@ describe('parseCatalog', () => {
     expect(warn).toHaveBeenCalledTimes(bad.length);
   });
 
+  it('keeps a boolean mobileCover and drops any other value', () => {
+    const out = parseCatalog({
+      plugins: [
+        { ...sine, mobileCover: false },
+        { ...noteGen, mobileCover: 'no' },
+      ],
+    }).plugins;
+    expect(out[0]?.mobileCover).toBe(false);
+    expect(out[1]).toEqual(noteGen);
+  });
+
   it('throws when there is no plugins list', () => {
     expect(() => parseCatalog({})).toThrow();
     expect(() => parseCatalog(null)).toThrow();
@@ -100,5 +112,15 @@ describe('plugin UI size (v1.1)', () => {
       const c = parseCatalog({ plugins: [{ ...entry, ui }] });
       expect(c.plugins[0]?.ui).toBeUndefined();
     }
+  });
+});
+
+describe('coveredOnMobile', () => {
+  it('covers plugins unless the catalog says mobileCover: false; never Master', () => {
+    const m = manifestsFrom({ plugins: [{ ...sine, mobileCover: false }, noteGen] });
+    expect(coveredOnMobile(sine.id, m.get(sine.id))).toBe(false);
+    expect(coveredOnMobile(noteGen.id, m.get(noteGen.id))).toBe(true);
+    expect(coveredOnMobile(MASTER_MANIFEST.id, MASTER_MANIFEST)).toBe(false);
+    expect(coveredOnMobile('com.unknown', undefined)).toBe(true);
   });
 });

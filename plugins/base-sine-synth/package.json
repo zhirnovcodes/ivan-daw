@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "ivandaw": {
-    "id": "com.ivandaw.base-sine-synth"
+    "id": "com.ivandaw.base-sine-synth",
+    "mobileCover": true
   },
   "scripts": {
     "build": "vite build",

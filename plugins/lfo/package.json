@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "ivandaw": {
-    "id": "com.ivandaw.lfo"
+    "id": "com.ivandaw.lfo",
+    "mobileCover": true
   },
   "scripts": {
     "build": "vite build",

@@ -92,4 +92,18 @@ export const PANELS_CSS = `
 .ivp-menu button:hover, .ivp-menu button:focus-visible { background: var(--w95-select); color: #fff; outline: none; }
 .ivp-menu .ivp-kind { opacity: 0.7; }
 .ivp-menu .ivp-note { padding: 6px 8px; }
+.ivp-bar .ivp-bpm-step { min-width: 0; padding: 0; width: 32px; }
+
+/* Mobile mode (2026-11-26): the shell sets html.ivd-mobile. Row 1: transport; row 2: Master. */
+.ivd-mobile .ivp-bar { flex-wrap: wrap; align-content: center; gap: 4px 6px; padding: 4px 6px; }
+.ivd-mobile .ivp-bar button { min-height: 32px; touch-action: manipulation; }
+.ivd-mobile .ivp-play { min-width: 60px; padding: 4px 8px; }
+.ivd-mobile .ivp-stop { padding: 4px 8px; }
+.ivd-mobile .ivp-bpm { gap: 4px; }
+/* 16 px stops iOS from zooming the page when the field gets focus. */
+.ivd-mobile .ivp-bpm input { width: 62px; height: 32px; font-size: 16px; }
+.ivd-mobile .ivp-beat { margin-left: auto; height: 32px; padding: 8px 6px; }
+.ivd-mobile .ivp-master { width: 100%; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ivd-mobile .ivp-master-row span { width: auto; }
+.ivd-mobile .ivp-master-row input { height: 24px; touch-action: none; }
 `;

@@ -29,15 +29,26 @@ const NODE_HALF = { x: 90, y: 40 };
 const CSS = `
 html, body { margin: 0; height: 100%; overflow: hidden; }
 body { font: 13px/1.2 var(--w95-font); color: #000; background: var(--w95-desk); -webkit-font-smoothing: none; }
-#ivd-shell { position: fixed; inset: 0; --ivd-top-h: 88px; }
-/* The canvas starts at the top panel's bottom edge (16 + 64 px), so the right scrollbar can touch it. */
-#ivd-canvas { position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--ivd-top-h) - 8px); overflow: hidden; }
-#ivd-top { position: absolute; left: 16px; right: 16px; top: 16px; height: calc(var(--ivd-top-h) - 24px); box-sizing: border-box; z-index: 50; display: flex; align-items: stretch;
+/* Gaps from the window edges, shared by the top panel, the zoom panel and the scrollbars
+   (canvas/styles.ts, canvas/scrollbars.ts), so the right scrollbar lines up with the panel's right wall. */
+#ivd-shell { position: fixed; inset: 0; --ivd-left: 16px; --ivd-right: 16px; --ivd-top: 16px; --ivd-bottom: 16px;
+  --ivd-panel-h: 64px; }
+/* The canvas starts at the top panel's bottom edge, so the right scrollbar can touch it. */
+#ivd-canvas { position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--ivd-top) + var(--ivd-panel-h)); overflow: hidden; }
+#ivd-top { position: absolute; left: var(--ivd-left); right: var(--ivd-right); top: var(--ivd-top); height: var(--ivd-panel-h); box-sizing: border-box; z-index: 50; display: flex; align-items: stretch;
   background: var(--w95-face); box-shadow: var(--w95-raised); padding: 2px; }
 #app { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 #ivd-bar { flex: 1; min-width: 0; }
 #ivd-bar .ivp-bar { background: transparent; }
 .ivd-play-tag { margin-left: 8px; padding: 3px 6px; box-shadow: var(--w95-sunken); background: var(--w95-field); }
+/* Mobile mode (2026-11-26): a two-row top panel, 8 px side margins; the page itself never pans or zooms.
+   Room at the top for the iPhone Dynamic Island / status bar, at the bottom for Android's buttons;
+   more where the phone reports a bigger safe area (viewport-fit=cover). */
+html.ivd-mobile, html.ivd-mobile body { touch-action: none; overscroll-behavior: none; }
+.ivd-mobile #ivd-shell { --ivd-panel-h: 72px;
+  --ivd-left: max(8px, env(safe-area-inset-left)); --ivd-right: max(8px, env(safe-area-inset-right));
+  --ivd-top: max(44px, calc(env(safe-area-inset-top) + 8px));
+  --ivd-bottom: max(48px, calc(env(safe-area-inset-bottom) + 8px)); }
 `;
 
 export interface App {
@@ -76,6 +87,22 @@ function layout(): {
   return { shell, bar, canvas, menu };
 }
 
+/**
+ * Mobile mode: tags the page for the mobile CSS and stops the browser zooming the page
+ * (pinch zooms the canvas instead).
+ */
+function setupMobilePage(): void {
+  document.documentElement.classList.add('ivd-mobile');
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.name = 'viewport';
+    document.head.append(meta);
+  }
+  meta.content =
+    'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+}
+
 async function loadCatalog(): Promise<Catalog> {
   try {
     return await fetchCatalog();
@@ -91,6 +118,7 @@ export async function boot(): Promise<App> {
   const asked = readMode(location.search);
   const devRefused = asked === 'dev' && !(import.meta.env.DEV && isLocalHost(location.hostname));
   mode.value = devRefused ? 'edit' : asked;
+  if (mode.value === 'mobile') setupMobilePage();
   const ui = layout();
   if (devRefused) showToast('Development mode works only on localhost');
   const catalog = await loadCatalog();
@@ -141,7 +169,7 @@ export async function boot(): Promise<App> {
   });
 
   mountTransportBar(ui.bar);
-  if (mode.value !== 'edit') {
+  if (mode.value === 'play' || mode.value === 'dev') {
     const tag = document.createElement('span');
     tag.className = 'ivd-play-tag';
     tag.textContent = mode.value === 'play' ? 'Play only' : 'Development';
@@ -149,7 +177,7 @@ export async function boot(): Promise<App> {
   }
   if (mode.value === 'dev') mountPresetPanel(ui.shell);
   mountCanvas(ui.canvas);
-  mountAddMenu(ui.menu);
+  if (mode.value !== 'mobile') mountAddMenu(ui.menu);
   // Plugins with a manifest.ui show their own UI inside their node box.
   const mountedUis = new Map<string, Mounted>();
   effect(() => {

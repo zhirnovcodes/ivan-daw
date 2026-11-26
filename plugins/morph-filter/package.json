@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "ivandaw": {
-    "id": "com.ivandaw.morph-filter"
+    "id": "com.ivandaw.morph-filter",
+    "mobileCover": true
   },
   "scripts": {
     "build": "vite build",

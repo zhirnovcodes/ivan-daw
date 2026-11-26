@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { permits, playTarget } from './playOnly';
+import { permits, playTarget, wiringLocked } from './playOnly';
 
 const header = { kind: 'header' as const, node: 'n1', nodePos: { x: 0, y: 0 } };
 const out = { kind: 'outPort' as const, ref: { node: 'n1', port: 'out' } };
@@ -35,5 +35,22 @@ describe('play-only canvas rules', () => {
     expect(permits('play', { type: 'connectArm', ...arm })).toBe(false);
     expect(permits('play', { type: 'removeArm', id: 'a1' })).toBe(false);
     expect(permits('play', { type: 'select', sel: { node: 'n1' } })).toBe(true);
+  });
+
+  it('mobile: no window moves, no connector or cable; only selecting runs', () => {
+    expect(playTarget('mobile', header)).toBeUndefined();
+    expect(playTarget('mobile', out)).toBeUndefined();
+    expect(playTarget('mobile', { kind: 'cable', id: 'c1' })).toBeUndefined();
+    expect(playTarget('mobile', { kind: 'empty' })).toEqual({ kind: 'empty' });
+    expect(permits('mobile', { type: 'moveNode', id: 'n1', x: 1, y: 1 })).toBe(false);
+    expect(permits('mobile', { type: 'removeNode', id: 'n1' })).toBe(false);
+    expect(permits('mobile', { type: 'select', sel: {} })).toBe(true);
+  });
+
+  it('locks the wiring in play-only and mobile', () => {
+    expect(wiringLocked('play')).toBe(true);
+    expect(wiringLocked('mobile')).toBe(true);
+    expect(wiringLocked('edit')).toBe(false);
+    expect(wiringLocked('dev')).toBe(false);
   });
 });

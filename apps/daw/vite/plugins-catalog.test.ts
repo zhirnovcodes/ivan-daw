@@ -71,6 +71,25 @@ describe('buildCatalog', () => {
     expect(scanPackages(root).map((p) => p.id)).toEqual(['com.test.a', 'com.test.c']);
   });
 
+  it('copies ivandaw.mobileCover from package.json, only when it is a boolean', () => {
+    const m = (id: string) => ({ id, name: id, kind: 'effect', ports: [] });
+    const set = (name: string, cover: unknown) => {
+      const dir = plugin(name, `com.test.${name}`, m(`com.test.${name}`));
+      writeFileSync(
+        join(dir, 'package.json'),
+        JSON.stringify({ name, ivandaw: { id: `com.test.${name}`, mobileCover: cover } }),
+      );
+    };
+    set('a', true);
+    set('b', false);
+    set('c', 'yes');
+    const byId = new Map(buildCatalog(root).plugins.map((e) => [e.id, e.mobileCover]));
+    expect(byId.get('com.test.a')).toBe(true);
+    expect(byId.get('com.test.b')).toBe(false);
+    expect(byId.has('com.test.c')).toBe(true);
+    expect(byId.get('com.test.c')).toBeUndefined();
+  });
+
   it('puts entry urls under the base URL (the hosted build uses /daw/)', () => {
     plugin('gen', 'com.test.gen', { id: 'com.test.gen', name: 'Gen', kind: 'midi', ports: [] });
     expect(buildCatalog(root, '/daw/').plugins[0]?.url).toBe('/daw/plugins/com.test.gen/index.js');

@@ -37,6 +37,11 @@ export interface CatalogEntry {
   ports: PortInfo[];
   /** The manifest's UI size (v1.1). Set → the plugin's own UI is shown inside its node box. */
   ui?: PluginUiSize;
+  /**
+   * Mobile mode (2026-11-26): whether the plugin's window gets a see-through cover that blocks
+   * touches. From package.json `ivandaw.mobileCover`; missing means covered.
+   */
+  mobileCover?: boolean;
 }
 
 /** A plugin UI's fixed size in CSS px, from `manifest.ui`. */
@@ -49,6 +54,7 @@ export interface Catalog {
 /** What the router and store need of a manifest. Built from the catalog, then from the loaded module. */
 export type PortsManifest = Pick<PluginManifest, 'id' | 'name' | 'kind' | 'ports'> & {
   ui?: PluginUiSize;
+  mobileCover?: boolean;
 };
 
 /** Plugin id → manifest. Always includes `builtin.master`. */
@@ -116,6 +122,7 @@ export function parseCatalog(raw: unknown): Catalog {
         url: r.url,
         ports: r.ports,
         ...(ui ? { ui } : {}),
+        ...(typeof r.mobileCover === 'boolean' ? { mobileCover: r.mobileCover } : {}),
       });
     } else {
       console.warn('catalog: skipping a malformed entry', e);
@@ -140,6 +147,7 @@ export function manifestsFrom(catalog: Catalog): ManifestMap {
       kind: e.kind,
       ports: e.ports,
       ...(e.ui ? { ui: e.ui } : {}),
+      ...(e.mobileCover !== undefined ? { mobileCover: e.mobileCover } : {}),
     });
   }
   return map;
@@ -158,4 +166,10 @@ export function hasStrip(plugin: string, m: PortsManifest | undefined): boolean 
   if (plugin === MASTER_PLUGIN) return true;
   if (!m) return false;
   return mainAudioOut(m) !== undefined || m.kind === 'midi';
+}
+
+/** Mobile mode: whether a node's window is covered (blocks touches). Master never is. */
+export function coveredOnMobile(plugin: string, m: PortsManifest | undefined): boolean {
+  if (plugin === MASTER_PLUGIN) return false;
+  return m?.mobileCover !== false;
 }

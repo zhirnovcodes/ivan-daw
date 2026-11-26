@@ -10,6 +10,7 @@ import { titleBar } from '../panels/w95';
 import { editNote, moveNote, removeNote, resizeNote, setNoteText } from '../store/actions';
 import { camera, editingNote, mode, project } from '../store/store';
 import { renderNoteText } from './noteText';
+import { wiringLocked } from './playOnly';
 
 interface NoteView {
   el: HTMLDivElement;
@@ -41,7 +42,7 @@ function drag(
 
 export function mountNotes(layer: HTMLElement): () => void {
   const views = new Map<string, NoteView>();
-  const readOnly = (): boolean => mode.peek() === 'play';
+  const readOnly = (): boolean => wiringLocked(mode.peek());
 
   function build(note: Note): NoteView {
     const el = document.createElement('div');

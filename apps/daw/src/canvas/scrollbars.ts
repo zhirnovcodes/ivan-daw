@@ -65,8 +65,8 @@ export function extentsOf(
 
 /** Bar thickness (= the zoom block's height: 23 px buttons + 3 px padding) and arrow length, screen px. */
 export const BAR = 29;
-/** The zoom block (canvas/styles.ts .ivd-zoombar): left 16 px, fixed width 3+23+2+52+2+23+3 = 108 px. */
-const ZOOM_RIGHT = 16 + 108;
+/** The zoom block (canvas/styles.ts .ivd-zoombar): at --ivd-left, fixed width 3+23+2+52+2+23+3 = 108 px. */
+const ZOOM_W = 108;
 export const ARROW = 25;
 /** The thumb never gets shorter than this, screen px. */
 export const THUMB_MIN = 20;
@@ -76,9 +76,12 @@ export const ARROW_STEP = 40;
 export const SCROLLBAR_CSS = `
 .ivd-sbar { position: absolute; z-index: 10; display: flex; background: var(--w95-hilite);
   box-shadow: 1px 1px 1px rgba(0,0,0,.5), inset 0 4px 4px rgba(0,0,0,.25); touch-action: none; }
-.ivd-sbar.h { left: ${ZOOM_RIGHT}px; right: ${16 + BAR}px; bottom: 16px; height: ${BAR}px; flex-direction: row; }
-.ivd-sbar.v { right: 16px; top: 0; bottom: ${16 + BAR}px; width: ${BAR}px; flex-direction: column; }
-.ivd-sbar-corner { position: absolute; z-index: 10; right: 16px; bottom: 16px; width: ${BAR}px; height: ${BAR}px;
+.ivd-sbar.h { left: calc(var(--ivd-left, 16px) + ${ZOOM_W}px); right: calc(var(--ivd-right, 16px) + ${BAR}px);
+  bottom: var(--ivd-bottom, 16px); height: ${BAR}px; flex-direction: row; }
+.ivd-sbar.v { right: var(--ivd-right, 16px); top: 0; bottom: calc(var(--ivd-bottom, 16px) + ${BAR}px); width: ${BAR}px;
+  flex-direction: column; }
+.ivd-sbar-corner { position: absolute; z-index: 10; right: var(--ivd-right, 16px); bottom: var(--ivd-bottom, 16px);
+  width: ${BAR}px; height: ${BAR}px;
   background: var(--w95-hilite); box-shadow: 1px 1px 1px rgba(0,0,0,.5); }
 .ivd-sbar-track { position: relative; flex: 1; }
 .ivd-sbar-btn, .ivd-sbar-thumb { background: var(--w95-face); border: 0; border-radius: 0; padding: 0; margin: 0;

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "ivandaw": {
-    "id": "com.ivandaw.control-sliders"
+    "id": "com.ivandaw.control-sliders",
+    "mobileCover": true
   },
   "scripts": {
     "build": "vite build",

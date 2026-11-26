@@ -7,6 +7,7 @@
     "id": "com.ivandaw.musichands",
     "repo": "zhirnovcodes/MusicHands",
     "asset": "musichands-daw.zip",
-    "release": "daw-build-1"
+    "release": "daw-build-1",
+    "mobileCover": false
   }
 }

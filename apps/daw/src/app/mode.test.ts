@@ -8,6 +8,11 @@ describe('readMode', () => {
     expect(readMode('?project=sine&mode=dev')).toBe('dev');
     expect(readMode('?mode=Play_Only')).toBe('play');
   });
+  it('reads ?mode=mobile', () => {
+    expect(readMode('?mode=mobile')).toBe('mobile');
+    expect(readMode('?project=sine&mode=MOBILE')).toBe('mobile');
+    expect(readMode('?mobile=true')).toBe('edit');
+  });
   it('opens normal when mode is missing or unknown', () => {
     expect(readMode('')).toBe('edit');
     expect(readMode('?mode=')).toBe('edit');

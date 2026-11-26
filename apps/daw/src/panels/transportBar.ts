@@ -1,5 +1,7 @@
 // The top panel (v1.2): Play / Pause, Stop, BPM, beat readout and a copy of Master's Volume / Pan on the left;
 // Add plugin and Sticky note on the right. Design: docs/v1.2-redesign.md, "3. Fixed panels".
+// Mobile mode (2026-11-26): two rows (Play, Stop, BPM − +, beat; then Master Volume and Pan),
+// no Add plugin or Sticky note. The shell's `ivd-mobile` class sets the layout (panels/styles.ts).
 
 import { effect } from '@preact/signals-core';
 import type { MountUi } from '../contracts/ui';
@@ -33,6 +35,24 @@ export const mountTransportBar: MountUi = (root) => {
   bpmInput.inputMode = 'decimal';
   bpmInput.setAttribute('aria-label', 'BPM');
   bpmWrap.append('BPM', bpmInput);
+  const mobile = mode.peek() === 'mobile';
+  // Mobile: phones have no arrow keys, so − and + step the tempo.
+  const bpmStep = (text: string, label: string, dir: 1 | -1): void => {
+    const b = h('button', 'ivp-bpm-step', text);
+    b.type = 'button';
+    b.setAttribute('aria-label', label);
+    b.addEventListener('click', (e) => {
+      e.preventDefault();
+      const from = parseBpm(bpmInput.value) ?? project.peek().transport.bpm;
+      setBpm(stepBpm(from, dir, false));
+      bpmInput.value = formatBpm(project.peek().transport.bpm);
+    });
+    bpmWrap.append(b);
+  };
+  if (mobile) {
+    bpmStep('−', 'Slower', -1);
+    bpmStep('+', 'Faster', 1);
+  }
 
   const beat = h('span', 'ivp-beat');
   beat.setAttribute('aria-label', 'Position, bar.beat');
@@ -72,17 +92,20 @@ export const mountTransportBar: MountUi = (root) => {
   addBtn.dataset.ivpAdd = '';
   const noteBtn = iconBtn('Sticky note', ICON_STICKY_NOTE);
   noteBtn.dataset.ivpNote = '';
-  bar.append(
-    playBtn,
-    stopBtn,
-    bpmWrap,
-    beat,
-    h('span', 'ivp-sep'),
-    master,
-    h('span', 'ivp-spacer'),
-    addBtn,
-    noteBtn,
-  );
+  if (mobile) bar.append(playBtn, stopBtn, bpmWrap, beat, master);
+  else {
+    bar.append(
+      playBtn,
+      stopBtn,
+      bpmWrap,
+      beat,
+      h('span', 'ivp-sep'),
+      master,
+      h('span', 'ivp-spacer'),
+      addBtn,
+      noteBtn,
+    );
+  }
   // Play-only: nothing can be added; the buttons stay, greyed out.
   addBtn.disabled = mode.peek() === 'play';
   noteBtn.disabled = mode.peek() === 'play';

@@ -1,7 +1,7 @@
 // Vite plugin: the plugin catalog. Tech design: "Plugin loading and the catalog", contract C6.
 //
 // Dev server:
-// - GET /plugins/catalog.json  → { plugins: [{ id, name, kind, url, ports }] } (CatalogEntry).
+// - GET /plugins/catalog.json  → { plugins: [{ id, name, kind, url, ports, ui?, mobileCover? }] } (CatalogEntry).
 // - GET /plugins/<id>/*        → plugins/<name>/dist/*.
 // - `pnpm dev` also builds each plugin that has a `build` script and keeps it building in watch mode.
 //   A plugin without one (Beatality) is prebuilt: its dist/ comes from scripts/fetch-plugins.mjs.
@@ -28,6 +28,8 @@ export interface PluginPackage {
   dir: string;
   /** The package.json scripts, to pick the watch command. */
   scripts: Record<string, string>;
+  /** `ivandaw.mobileCover`: cover the plugin's window in mobile mode. */
+  mobileCover?: boolean;
 }
 
 function readJson(file: string): unknown {
@@ -52,7 +54,14 @@ export function scanPackages(pluginsDir: string): PluginPackage[] {
     if (isRecord(pkg.scripts)) {
       for (const [k, v] of Object.entries(pkg.scripts)) if (typeof v === 'string') scripts[k] = v;
     }
-    found.push({ name, id: pkg.ivandaw.id, dir, scripts });
+    const cover = pkg.ivandaw.mobileCover;
+    found.push({
+      name,
+      id: pkg.ivandaw.id,
+      dir,
+      scripts,
+      ...(typeof cover === 'boolean' ? { mobileCover: cover } : {}),
+    });
   }
   return found;
 }
@@ -86,6 +95,7 @@ export function buildCatalog(pluginsDir: string, base = '/'): Catalog {
       url: `${base}plugins/${p.id}/index.js`,
       ports: m.ports as CatalogEntry['ports'],
       ...(ui ? { ui } : {}),
+      ...(p.mobileCover !== undefined ? { mobileCover: p.mobileCover } : {}),
     });
   }
   return { plugins };

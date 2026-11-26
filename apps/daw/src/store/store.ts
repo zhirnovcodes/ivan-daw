@@ -52,7 +52,8 @@ export const camera = signal<Camera>({ x: 0, y: 0, z: 1 });
 export const editingNote = signal<string | undefined>(undefined);
 /**
  * 'play' = play-only (v1.1): the wiring is locked, the sound stays playable.
- * 'dev' = edit mode plus the preset panel (dev server only). Set once at boot.
+ * 'dev' = edit mode plus the preset panel (dev server only).
+ * 'mobile' = play-only for touch screens (2026-11-26). Set once at boot.
  */
 export const mode = signal<Mode>('edit');
 /**

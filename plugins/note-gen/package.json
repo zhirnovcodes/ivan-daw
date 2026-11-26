@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "ivandaw": {
-    "id": "com.ivandaw.note-gen"
+    "id": "com.ivandaw.note-gen",
+    "mobileCover": true
   },
   "scripts": {
     "build": "vite build",

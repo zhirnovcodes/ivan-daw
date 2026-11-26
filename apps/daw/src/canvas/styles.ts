@@ -84,7 +84,7 @@ export const CANVAS_CSS = `
     #fff 70% 77%, var(--w95-shadow) 77% 87%, transparent 87%); }
 
 /* Zoom panel, bottom-left */
-.ivd-zoombar { position: absolute; left: 16px; bottom: 16px; z-index: 10; display: flex; align-items: center; gap: 2px;
+.ivd-zoombar { position: absolute; left: var(--ivd-left, 16px); bottom: var(--ivd-bottom, 16px); z-index: 10; display: flex; align-items: center; gap: 2px;
   padding: 3px; background: var(--w95-face); box-shadow: var(--w95-raised); }
 .ivd-zoombar button { font: 13px var(--w95-font); color: #000; background: var(--w95-face); border: 0; border-radius: 0;
   box-shadow: var(--w95-raised); height: 23px; cursor: pointer; padding: 0; }
@@ -92,6 +92,12 @@ export const CANVAS_CSS = `
 .ivd-zoombar button:focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
 .ivd-zoom-step { width: 23px; }
 .ivd-zoombar .ivd-zoom { width: 52px; box-sizing: border-box; padding: 0 6px; background: var(--w95-field); box-shadow: var(--w95-sunken); }
+
+/* Mobile mode (2026-11-26): fingers move the camera; covered windows take no input. */
+.ivd-canvas.ivd-mobile { touch-action: none; }
+.ivd-mobile .ivd-node > .w95-titlebar { cursor: default; }
+.ivd-mobile .ivd-node.ivd-covered > :not(.ivd-cover) { isolation: isolate; }
+.ivd-cover { position: absolute; inset: 0; z-index: 100; background: transparent; }
 
 .ivd-toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); background: var(--w95-face); color: #000;
   box-shadow: var(--w95-raised); padding: 8px 14px; font: 13px var(--w95-font); z-index: 1000; pointer-events: none; }
