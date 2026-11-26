@@ -53,6 +53,8 @@ importers:
 
   plugins/beatality: {}
 
+  plugins/brimstone-bass: {}
+
   plugins/choko-arpegio: {}
 
   plugins/control-sliders:
