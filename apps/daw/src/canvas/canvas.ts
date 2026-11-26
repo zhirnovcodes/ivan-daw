@@ -355,7 +355,7 @@ export const mountCanvas: MountUi = (root) => {
         // Uncovered windows (Master, plugins with mobileCover: false) keep their controls and UI.
         passThrough: (t) => {
           // The zoom panel and the page scrollbars keep their own drags (and end the auto-fit).
-          if (zoomPanel.contains(t) || t.closest('.ivd-sbar, .ivd-sbar-corner')) {
+          if (zoomPanel.contains(t) || t.closest('.ivd-sbar-thumb')) {
             fitting = false;
             return true;
           }
