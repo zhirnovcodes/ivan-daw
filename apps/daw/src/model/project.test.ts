@@ -121,6 +121,17 @@ describe('uiHidden (v1.1.2)', () => {
   });
 });
 
+describe('view (2026-11-26, dev-mode presets)', () => {
+  it('keeps a good view, clamps its zoom, and drops a broken one', () => {
+    const at = (view: unknown) => parseProject({ ...(sine() as object), view }).view;
+    expect(at({ x: -10, y: 20.5, z: 0.5 })).toEqual({ x: -10, y: 20.5, z: 0.5 });
+    expect(at({ x: 0, y: 0, z: 9 })).toEqual({ x: 0, y: 0, z: 2 });
+    expect(at({ x: 0, y: 0, z: 0 })).toBeUndefined();
+    expect(at({ x: 'a', y: 0, z: 1 })).toBeUndefined();
+    expect('view' in parseProject(sine())).toBe(false);
+  });
+});
+
 describe('notes (v1.2)', () => {
   const withNotes = (notes: unknown): unknown => ({ ...(sine() as object), notes });
 

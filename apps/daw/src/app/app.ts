@@ -126,9 +126,17 @@ export async function boot(): Promise<App> {
 
   const base = import.meta.env.BASE_URL;
   try {
-    const { path, missing } = await openPath(location.search, () => fetchPresets(base));
+    const { path, missing, otherKind } = await openPath(
+      location.search,
+      () => fetchPresets(base),
+      mode.value === 'mobile',
+    );
     if (missing !== undefined) showToast(`No saved preset "${missing}"`);
-    loadProject(await fetchProject(`${base}${path}`));
+    const doc = await fetchProject(`${base}${path}`);
+    // A preset made for the other kind of screen keeps its graph but not its view: a desktop zoom
+    // and scroll mean little on a phone (mobile mode fits all plugins instead), and the other way.
+    if (otherKind) delete doc.view;
+    loadProject(doc);
   } catch (e) {
     showToast(`Project failed to load: ${e instanceof Error ? e.message : String(e)}`);
   }

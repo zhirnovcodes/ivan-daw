@@ -45,7 +45,8 @@ export const project = signal<Project>(emptyProject());
 export const selection = signal<Selection>({});
 /**
  * The world point shown at the canvas's top-left corner, and the zoom (`z`, 1 = 100%, v1.1.2).
- * View state: not part of the project, not saved.
+ * View state: not part of the project, except that a dev-mode preset saves it as `project.view`
+ * (2026-11-26) and loadProject moves here.
  */
 export const camera = signal<Camera>({ x: 0, y: 0, z: 1 });
 /** v1.2: the sticky note whose text is open in its editor, if any. View state, not saved. */

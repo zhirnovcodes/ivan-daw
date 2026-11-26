@@ -322,7 +322,8 @@ export const mountCanvas: MountUi = (root) => {
   const viewCenter = (): Pt => ({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
 
   // ---- Mobile: finger pan and pinch zoom; the view fits all plugins until the first touch. ----
-  let fitting = mobile;
+  // A preset saved with its own view (zoom and scroll, 2026-11-26) opens there instead.
+  let fitting = mobile && !project.peek().view;
   let fitFrame = 0;
   const fitAll = (): void => {
     const bounds = nodeBounds();

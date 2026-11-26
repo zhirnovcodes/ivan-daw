@@ -20,7 +20,23 @@ export interface Project {
   notes?: Note[];
   /** v1.2 ARM links: numbered control connectors. Missing = none. */
   arms?: ArmLink[];
+  /**
+   * 2026-11-26: where the view was when a dev-mode preset was saved: the world point at the canvas's
+   * top-left (`x`, `y`) and the zoom (`z`, 1 = 100%). loadProject moves the camera there; mobile mode
+   * then skips its fit-all. Missing = the view stays put. Not kept up to date while the camera moves.
+   */
+  view?: ProjectView;
 }
+
+export interface ProjectView {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** The zoom range the canvas allows (store/camera.ts LEVEL_MIN / LEVEL_MAX: 25%–200%). */
+const VIEW_Z_MIN = 0.25;
+const VIEW_Z_MAX = 2;
 
 /** ARM connectors per side, numbered 1..ARM_SLOTS. */
 export const ARM_SLOTS = 16;
@@ -158,6 +174,12 @@ class ProjectError extends Error {
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** A saved view, or undefined when it's missing or broken (view state: never worth failing a load). */
+function readView(v: unknown): ProjectView | undefined {
+  if (!isObject(v) || !isNum(v.x) || !isNum(v.y) || !isNum(v.z) || v.z <= 0) return undefined;
+  return { x: v.x, y: v.y, z: clamp(v.z, VIEW_Z_MIN, VIEW_Z_MAX) };
+}
 
 function readPortRef(v: unknown, where: string): PortRef {
   if (!isObject(v) || typeof v.node !== 'string' || typeof v.port !== 'string') {
@@ -315,6 +337,7 @@ export function parseProject(raw: unknown): Project {
   if (raw.notes !== undefined && !Array.isArray(raw.notes))
     throw new ProjectError('project.notes: expected an array');
   const notes = (raw.notes ?? []).map(readNote);
+  const view = readView(raw.view);
   const noteIds = new Set<string>();
   for (const n of notes) {
     if (noteIds.has(n.id)) throw new ProjectError(`duplicate note id "${n.id}"`);
@@ -329,6 +352,7 @@ export function parseProject(raw: unknown): Project {
     cables,
     ...(notes.length > 0 ? { notes } : {}),
     ...(arms.length > 0 ? { arms } : {}),
+    ...(view ? { view } : {}),
   };
 }
 

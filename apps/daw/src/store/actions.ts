@@ -88,6 +88,9 @@ function updateNode(id: string, fn: (n: GraphNode) => GraphNode): void {
 /** Replaces the project (boot, or a test). Clears selection and node status; ids continue past the loaded ones. */
 export function loadProject(p: Project): void {
   bumpCounters(p);
+  // A saved view (dev-mode presets, 2026-11-26) moves the camera. `p.view` stays as the view the
+  // file was opened with; a preset save writes the current camera over it.
+  if (p.view) camera.value = { ...p.view };
   project.value = p;
   selection.value = {};
   editingNote.value = undefined;

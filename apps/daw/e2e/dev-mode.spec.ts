@@ -15,7 +15,8 @@ test.beforeEach(({ page: _ }, info) => {
 
 test.afterEach(async ({ request }) => {
   for (const n of [NAME, BEAT])
-    await request.delete(`/__presets/preset?name=${encodeURIComponent(n)}`);
+    for (const kind of ['', '&mobile=1'])
+      await request.delete(`/__presets/preset?name=${encodeURIComponent(n)}${kind}`);
 });
 
 test('dev mode saves, lists, replaces, opens and deletes a preset', async ({ page }) => {
@@ -62,6 +63,61 @@ test('dev mode saves, lists, replaces, opens and deletes a preset', async ({ pag
   await dialog.getByRole('button', { name: 'Yes' }).click();
   await expect(status).toHaveText(`Deleted "${NAME}"`);
   await expect(item).toHaveCount(0);
+});
+
+// 2026-11-26: a preset is a name plus a Mobile flag, and it keeps the zoom and scroll.
+test('mobile and desktop presets of one name, each with its own view', async ({
+  page,
+  request,
+}) => {
+  await openDemo(page, '/?project=sine&mode=dev');
+  const panel = page.locator('.ivp-presets');
+  const status = panel.getByRole('status');
+  const bpm = page.getByRole('textbox', { name: 'BPM' });
+  const cam = () => page.evaluate(() => window.__ivandaw?.camera());
+  const bpmNow = async () =>
+    (await page.evaluate(() => window.__ivandaw?.project()))?.transport.bpm;
+
+  // Desktop: zoomed in once, 111 BPM.
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  await bpm.fill('111');
+  await bpm.press('Enter');
+  const desktopView = await cam();
+  await panel.getByRole('textbox', { name: 'Preset name' }).fill(NAME);
+  await panel.getByRole('button', { name: 'Save' }).click();
+  await expect(status).toHaveText(`Saved "${NAME}"`);
+
+  // Mobile: zoomed out, 142 BPM; the same name with Mobile ticked is a second preset.
+  await page.getByRole('button', { name: 'Zoom out' }).click();
+  await page.getByRole('button', { name: 'Zoom out' }).click();
+  await bpm.fill('142');
+  await bpm.press('Enter');
+  const mobileView = await cam();
+  expect(mobileView?.z).not.toBe(desktopView?.z);
+  await panel.getByRole('checkbox', { name: 'Mobile' }).check();
+  await panel.getByRole('button', { name: 'Save' }).click();
+  await expect(status).toHaveText(`Saved "${NAME} MOBILE"`);
+  await expect(panel.getByRole('option', { name: NAME, exact: true })).toHaveCount(1);
+  await expect(panel.getByRole('option', { name: `${NAME} MOBILE`, exact: true })).toHaveCount(1);
+
+  // Clicking a list item sets the name and the toggle.
+  await panel.getByRole('option', { name: NAME, exact: true }).click();
+  await expect(panel.getByRole('checkbox', { name: 'Mobile' })).not.toBeChecked();
+
+  // Each mode opens its own kind, at its saved view.
+  await openDemo(page, `/?preset=${encodeURIComponent(NAME)}&mode=dev`);
+  expect(await bpmNow()).toBe(111);
+  expect(await cam()).toEqual(desktopView);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openDemo(page, `/?preset=${encodeURIComponent(NAME)}&mode=mobile`);
+  expect(await bpmNow()).toBe(142);
+  expect(await cam()).toEqual(mobileView);
+
+  // With no mobile preset of that name, mobile mode opens the desktop one.
+  await request.delete(`/__presets/preset?name=${encodeURIComponent(NAME)}&mobile=1`);
+  await openDemo(page, `/?preset=${encodeURIComponent(NAME)}&mode=mobile`);
+  expect(await bpmNow()).toBe(111);
+  await expect(page.locator('.ivd-toast')).toHaveCount(0);
 });
 
 test('no preset panel outside dev mode', async ({ page }) => {

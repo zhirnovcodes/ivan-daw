@@ -1,13 +1,16 @@
 // Development mode (?mode=dev, 2026-11-23): the preset panel, bottom right.
-//   Name field · list of saved presets (a click puts that name in the field) · Save · Delete.
-// Save writes the whole project, with each plugin's own state, to public/presets/ through the dev
-// server (vite/presets.ts); a preset with that name is replaced. Delete asks first.
-// A saved preset opens with ?preset=<Preset Name>.
+//   Name field + Mobile toggle · list of saved presets (a click puts that name and kind in the
+//   fields) · Save · Delete.
+// A preset is a name plus the Mobile flag (2026-11-26): mobile ones show a MOBILE suffix in the list.
+// Save writes the whole project, with each plugin's own state and the current zoom and scroll, to
+// public/presets/ through the dev server (vite/presets.ts); the preset with that name and kind is
+// replaced. Delete asks first.
+// A saved preset opens with ?preset=<Preset Name>; with &mode=mobile the mobile one is preferred.
 
 import { captureState } from '../model/pluginState';
-import { fetchPresets, type PresetEntry, presetSlug, sameName } from '../model/presets';
+import { fetchPresets, type PresetEntry, presetSlug, samePreset } from '../model/presets';
 import { MASTER_ID, type Project } from '../model/project';
-import { project } from '../store/store';
+import { camera, project } from '../store/store';
 import { ensureStyles, h } from './dom';
 import { panelServices } from './services';
 import { titleBar } from './w95';
@@ -15,7 +18,11 @@ import { titleBar } from './w95';
 const CSS = `
 .ivp-presets { position: absolute; right: 53px; bottom: 53px; z-index: 60; width: 240px; display: flex; flex-direction: column; }
 .ivp-presets-body { display: flex; flex-direction: column; gap: 6px; padding: 6px 4px 4px; }
-.ivp-presets-name { width: 100%; }
+.ivp-presets-top { display: flex; gap: 6px; align-items: center; }
+.ivp-presets-name { flex: 1; min-width: 0; }
+.ivp-presets-mobile { display: flex; gap: 3px; align-items: center; white-space: nowrap; cursor: pointer; }
+.ivp-presets-mobile input { margin: 0; }
+.ivp-presets-list .tag { margin-left: 4px; font-size: 11px; opacity: 0.75; }
 .ivp-presets-list { list-style: none; margin: 0; padding: 2px; height: 120px; overflow-y: auto; background: var(--w95-field);
   box-shadow: var(--w95-sunken); }
 .ivp-presets-list li { padding: 1px 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -93,8 +100,15 @@ async function snapshot(): Promise<Project> {
     // Not loaded (still loading, or broken): keep whatever state it was opened with.
     nodes.push(inst ? { ...n, state: await captureState(await inst.getState(), store) } : n);
   }
-  return { ...p, nodes };
+  const { x, y, z } = camera.peek();
+  return { ...p, nodes, view: { x, y, z } };
 }
+
+/** How a preset is named to people: `Drums` or `Drums MOBILE`. */
+const label = (name: string, mobile: boolean): string => (mobile ? `${name} MOBILE` : name);
+
+const presetQuery = (name: string, mobile: boolean): string =>
+  `name=${encodeURIComponent(name)}${mobile ? '&mobile=1' : ''}`;
 
 export function mountPresetPanel(root: HTMLElement): () => void {
   ensureStyles();
@@ -113,6 +127,13 @@ export function mountPresetPanel(root: HTMLElement): () => void {
   name.type = 'text';
   name.placeholder = 'Preset name';
   name.setAttribute('aria-label', 'Preset name');
+  const mobileBox = h('input', '');
+  mobileBox.type = 'checkbox';
+  const mobileLabel = h('label', 'ivp-presets-mobile');
+  mobileLabel.title = 'A preset for ?mode=mobile';
+  mobileLabel.append(mobileBox, 'Mobile');
+  const top = h('div', 'ivp-presets-top');
+  top.append(name, mobileLabel);
   const list = h('ul', 'ivp-presets-list w95-scroll');
   list.setAttribute('role', 'listbox');
   list.setAttribute('aria-label', 'Saved presets');
@@ -124,7 +145,7 @@ export function mountPresetPanel(root: HTMLElement): () => void {
   row.append(save, del);
   const status = h('div', 'ivp-presets-status');
   status.setAttribute('role', 'status');
-  body.append(name, list, row, status);
+  body.append(top, list, row, status);
   win.append(bar, body);
   // Clicks and keys here are the panel's, not the canvas's.
   win.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -133,11 +154,12 @@ export function mountPresetPanel(root: HTMLElement): () => void {
   let presets: PresetEntry[] = [];
   let busy = false;
 
-  const match = (): PresetEntry | undefined => presets.find((p) => sameName(p.name, name.value));
+  const match = (): PresetEntry | undefined =>
+    presets.find((p) => samePreset(p, name.value, mobileBox.checked));
   const sync = (): void => {
     const hit = match();
-    for (const li of list.querySelectorAll<HTMLLIElement>('li[data-name]')) {
-      li.setAttribute('aria-selected', String(li.dataset.name === hit?.name));
+    for (const li of list.querySelectorAll<HTMLLIElement>('li[data-file]')) {
+      li.setAttribute('aria-selected', String(li.dataset.file === hit?.file));
     }
     save.disabled = busy || presetSlug(name.value) === '';
     del.disabled = busy || !hit;
@@ -147,11 +169,14 @@ export function mountPresetPanel(root: HTMLElement): () => void {
     if (presets.length === 0) list.append(h('li', 'empty', 'No presets yet'));
     for (const p of presets) {
       const li = h('li', '', p.name);
-      li.dataset.name = p.name;
+      if (p.mobile) li.append(h('span', 'tag', 'MOBILE'));
+      li.dataset.file = p.file;
       li.setAttribute('role', 'option');
-      li.title = `Open with ?preset=${p.name}`;
+      li.setAttribute('aria-label', label(p.name, p.mobile));
+      li.title = `Open with ?preset=${p.name}${p.mobile ? '&mode=mobile' : ''}`;
       li.addEventListener('click', () => {
         name.value = p.name;
+        mobileBox.checked = p.mobile;
         sync();
       });
       list.append(li);
@@ -176,27 +201,30 @@ export function mountPresetPanel(root: HTMLElement): () => void {
   };
 
   name.addEventListener('input', sync);
+  mobileBox.addEventListener('change', sync);
   name.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !save.disabled) save.click();
   });
   save.addEventListener('click', () => {
     const n = name.value.trim();
+    const mobile = mobileBox.checked;
     void run(async () => {
       status.textContent = 'Saving…';
       const doc = await snapshot();
       const replaced = match() !== undefined;
-      await send('PUT', `/__presets/preset?name=${encodeURIComponent(n)}`, JSON.stringify(doc));
-      return `${replaced ? 'Replaced' : 'Saved'} "${n}"`;
+      await send('PUT', `/__presets/preset?${presetQuery(n, mobile)}`, JSON.stringify(doc));
+      return `${replaced ? 'Replaced' : 'Saved'} "${label(n, mobile)}"`;
     });
   });
   del.addEventListener('click', async () => {
     const hit = match();
     if (!hit) return;
-    if (!(await askYesNo('Delete preset', `Delete preset "${hit.name}"?`))) return;
+    const shown = label(hit.name, hit.mobile);
+    if (!(await askYesNo('Delete preset', `Delete preset "${shown}"?`))) return;
     void run(async () => {
-      await send('DELETE', `/__presets/preset?name=${encodeURIComponent(hit.name)}`);
+      await send('DELETE', `/__presets/preset?${presetQuery(hit.name, hit.mobile)}`);
       name.value = '';
-      return `Deleted "${hit.name}"`;
+      return `Deleted "${shown}"`;
     });
   });
 

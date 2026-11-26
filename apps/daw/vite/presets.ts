@@ -1,22 +1,31 @@
 // Dev-server plugin: the preset library for development mode (?mode=dev). Added 2026-11-23.
 //
 // Presets are project files kept in the repo, so a build serves them as static files:
-//   public/presets/index.json       [{ name, file }]  the list, in save order
-//   public/presets/<slug>.json      one project each; open it with ?preset=<slug>
+//   public/presets/index.json         [{ name, mobile, file }]  the list, in save order
+//   public/presets/<slug>.json        one desktop project each; open it with ?preset=<slug>
+//   public/presets/<slug>.mobile.json one mobile project each (2026-11-26); ?preset=<slug>&mode=mobile
 //   public/presets/files/<sha256>   plugin state files (PluginState.files), shared between presets
 //
 // Routes (dev server only, and only for requests from this machine; a build has none, so the hosted
 // site is read-only):
 //   POST   /__presets/file               raw bytes   → { path }  stores one state file
-//   PUT    /__presets/preset?name=<name> project JSON → { file }  saves, replacing a preset of that name
-//   DELETE /__presets/preset?name=<name>              → { ok }
+//   PUT    /__presets/preset?name=<name>[&mobile=1] project JSON → entry  saves, replacing that preset
+//   DELETE /__presets/preset?name=<name>[&mobile=1]              → { ok }
+// A preset is a name plus a mobile flag: "Drums" and "Drums" MOBILE are two presets.
 // Saving or deleting removes state files no preset uses any more.
 
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { Plugin } from 'vite';
-import { isLoopback, type PresetEntry, presetSlug, sameName } from '../src/model/presets';
+import {
+  isLoopback,
+  type PresetEntry,
+  presetFile,
+  presetSlug,
+  readEntries,
+  samePreset,
+} from '../src/model/presets';
 import { parseProject } from '../src/model/project';
 
 const FILES = 'files';
@@ -25,15 +34,7 @@ export const FILES_PREFIX = `presets/${FILES}/`;
 
 export function readIndex(dir: string): PresetEntry[] {
   try {
-    const raw: unknown = JSON.parse(readFileSync(join(dir, 'index.json'), 'utf8'));
-    if (!Array.isArray(raw)) return [];
-    return raw.filter(
-      (e): e is PresetEntry =>
-        typeof e === 'object' &&
-        e !== null &&
-        typeof e.name === 'string' &&
-        typeof e.file === 'string',
-    );
+    return readEntries(JSON.parse(readFileSync(join(dir, 'index.json'), 'utf8')));
   } catch {
     return [];
   }
@@ -54,18 +55,18 @@ export function storeFile(dir: string, bytes: Uint8Array): string {
 }
 
 /**
- * Saves a project under `name`. A preset with the same name (any case) is replaced. Throws on a bad
- * name or a document that isn't a project.
+ * Saves a project under `name`, as a mobile or a desktop preset. The preset with the same name (any
+ * case) and kind is replaced. Throws on a bad name or a document that isn't a project.
  */
-export function savePreset(dir: string, name: string, doc: unknown): PresetEntry {
+export function savePreset(dir: string, name: string, mobile: boolean, doc: unknown): PresetEntry {
   const trimmed = name.trim();
   const slug = presetSlug(trimmed);
   if (!slug) throw new Error('bad preset name');
   const project = parseProject(doc);
   mkdirSync(dir, { recursive: true });
   const list = readIndex(dir);
-  const old = list.find((e) => sameName(e.name, trimmed));
-  const entry: PresetEntry = { name: trimmed, file: `${slug}.json` };
+  const old = list.find((e) => samePreset(e, trimmed, mobile));
+  const entry: PresetEntry = { name: trimmed, mobile, file: presetFile(slug, mobile) };
   // A clash on the file name with a differently named preset ("A b" / "a-b") would overwrite it.
   const clash = list.find((e) => e.file === entry.file && e !== old);
   if (clash) throw new Error(`"${trimmed}" would overwrite preset "${clash.name}"`);
@@ -76,9 +77,9 @@ export function savePreset(dir: string, name: string, doc: unknown): PresetEntry
   return entry;
 }
 
-export function deletePreset(dir: string, name: string): boolean {
+export function deletePreset(dir: string, name: string, mobile: boolean): boolean {
   const list = readIndex(dir);
-  const old = list.find((e) => sameName(e.name, name));
+  const old = list.find((e) => samePreset(e, name, mobile));
   if (!old) return false;
   rmSync(join(dir, old.file), { force: true });
   writeIndex(
@@ -165,13 +166,15 @@ export function presetLibrary(dir = resolve(import.meta.dirname, '../public/pres
           }
           if (url.pathname === '/__presets/preset') {
             const name = url.searchParams.get('name') ?? '';
+            const mobile = url.searchParams.get('mobile') === '1';
             if (req.method === 'PUT') {
               const doc: unknown = JSON.parse(text(await readBody(req)));
-              reply(200, savePreset(dir, name, doc));
+              reply(200, savePreset(dir, name, mobile, doc));
               return;
             }
             if (req.method === 'DELETE') {
-              if (!deletePreset(dir, name)) reply(404, { error: `no preset "${name}"` });
+              if (!deletePreset(dir, name, mobile))
+                reply(404, { error: `no preset "${name}"${mobile ? ' MOBILE' : ''}` });
               else reply(200, { ok: true });
               return;
             }

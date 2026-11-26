@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { findPreset, isLocalHost, isLoopback, presetSlug, sameName } from './presets';
+import {
+  findPreset,
+  isLocalHost,
+  isLoopback,
+  presetFile,
+  presetSlug,
+  readEntries,
+  sameName,
+} from './presets';
 
 describe('preset names', () => {
   it('slugs a name into a file-safe id', () => {
@@ -13,14 +21,41 @@ describe('preset names', () => {
   });
   it('finds a preset by name first, then by file name', () => {
     const list = [
-      { name: 'A b', file: 'a-b.json' },
-      { name: 'a-b-c', file: 'a-b-c.json' },
+      { name: 'A b', mobile: false, file: 'a-b.json' },
+      { name: 'a-b-c', mobile: false, file: 'a-b-c.json' },
     ];
-    expect(findPreset(list, 'a B')?.file).toBe('a-b.json');
-    expect(findPreset(list, 'a-b')?.file).toBe('a-b.json');
-    expect(findPreset(list, 'A-B-C')?.file).toBe('a-b-c.json');
-    expect(findPreset(list, 'zzz')).toBeUndefined();
-    expect(findPreset(list, '!!')).toBeUndefined();
+    expect(findPreset(list, 'a B', false)?.file).toBe('a-b.json');
+    expect(findPreset(list, 'a-b', false)?.file).toBe('a-b.json');
+    expect(findPreset(list, 'A-B-C', false)?.file).toBe('a-b-c.json');
+    expect(findPreset(list, 'zzz', false)).toBeUndefined();
+    expect(findPreset(list, '!!', false)).toBeUndefined();
+  });
+  it('prefers the kind for the page mode, else opens the other kind', () => {
+    const both = [
+      { name: 'Beat', mobile: false, file: 'beat.json' },
+      { name: 'Beat', mobile: true, file: 'beat.mobile.json' },
+    ];
+    expect(findPreset(both, 'beat', true)?.file).toBe('beat.mobile.json');
+    expect(findPreset(both, 'beat', false)?.file).toBe('beat.json');
+    const desktopOnly = [{ name: 'BeatalityOnly', mobile: false, file: 'beatalityonly.json' }];
+    expect(findPreset(desktopOnly, 'BeatalityOnly', true)?.file).toBe('beatalityonly.json');
+    const mobileOnly = [{ name: 'Pad', mobile: true, file: 'pad.mobile.json' }];
+    expect(findPreset(mobileOnly, 'pad', false)?.file).toBe('pad.mobile.json');
+  });
+  it('names files by kind and reads old index entries as desktop', () => {
+    expect(presetFile('beat', false)).toBe('beat.json');
+    expect(presetFile('beat', true)).toBe('beat.mobile.json');
+    expect(
+      readEntries([
+        { name: 'Old', file: 'old.json' },
+        { name: 'M', mobile: true, file: 'm.mobile.json' },
+        { name: 3 },
+      ]),
+    ).toEqual([
+      { name: 'Old', mobile: false, file: 'old.json' },
+      { name: 'M', mobile: true, file: 'm.mobile.json' },
+    ]);
+    expect(readEntries({})).toEqual([]);
   });
 });
 

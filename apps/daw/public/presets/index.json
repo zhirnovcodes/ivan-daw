@@ -1,14 +1,22 @@
 [
   {
     "name": "BeatalityOnly",
+    "mobile": false,
     "file": "beatalityonly.json"
   },
   {
     "name": "MusicHands",
+    "mobile": false,
     "file": "musichands.json"
   },
   {
     "name": "BrimstoneBass",
+    "mobile": false,
     "file": "brimstonebass.json"
+  },
+  {
+    "name": "BeatalityOnly",
+    "mobile": true,
+    "file": "beatalityonly.mobile.json"
   }
 ]

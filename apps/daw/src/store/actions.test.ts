@@ -105,6 +105,13 @@ describe('loadProject', () => {
     expect(selection.value).toEqual({});
     expect(nodeStatus.value).toEqual({ master: 'ready' });
   });
+  it('moves the camera to a saved view, and leaves it without one', () => {
+    camera.value = { x: 1, y: 2, z: 1 };
+    loadProject(demo());
+    expect(camera.value).toEqual({ x: 1, y: 2, z: 1 });
+    loadProject({ ...demo(), view: { x: -50, y: 30, z: 0.5 } });
+    expect(camera.value).toEqual({ x: -50, y: 30, z: 0.5 });
+  });
 });
 
 describe('every action replaces the project instead of mutating it', () => {
