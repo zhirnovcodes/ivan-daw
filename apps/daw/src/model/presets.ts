@@ -7,7 +7,7 @@
 export interface PresetEntry {
   /** As typed in the panel. Names match case-insensitively. */
   name: string;
-  /** Made for ?mode=mobile. Index entries saved before 2026-11-26 have none: desktop. */
+  /** Made for the mobile version (?mobile=true). Index entries saved before 2026-11-26 have none: desktop. */
   mobile: boolean;
   /** File under presets/: `my-beat.json`, or `my-beat.mobile.json` for a mobile one. */
   file: string;

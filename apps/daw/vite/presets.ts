@@ -3,7 +3,7 @@
 // Presets are project files kept in the repo, so a build serves them as static files:
 //   public/presets/index.json         [{ name, mobile, file }]  the list, in save order
 //   public/presets/<slug>.json        one desktop project each; open it with ?preset=<slug>
-//   public/presets/<slug>.mobile.json one mobile project each (2026-11-26); ?preset=<slug>&mode=mobile
+//   public/presets/<slug>.mobile.json one mobile project each (2026-11-26); ?preset=<slug>&mobile=true
 //   public/presets/files/<sha256>   plugin state files (PluginState.files), shared between presets
 //
 // Routes (dev server only, and only for requests from this machine; a build has none, so the hosted

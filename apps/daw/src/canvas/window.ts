@@ -17,6 +17,8 @@ import type { Pt } from './geometry';
 
 export const FRAME = 4;
 export const TITLE_H = 18;
+/** Mobile mode (2026-11-26): the title bar is 1.5 times taller, for fingers. */
+export const MOBILE_TITLE_H = 27;
 export const GAP = 4;
 export const SIDE_W = 44;
 /** Group box: two label lines ("MIDI" / "IN") and padding. */
@@ -53,6 +55,8 @@ export interface WindowSpec {
   /** Rows of the generic parameter strip (plugins without their own UI). */
   paramRows: number;
   footer: boolean;
+  /** Title bar height; TITLE_H when left out. */
+  titleH?: number;
   /** Current ARM page per side, 0-based. */
   page?: { in?: number; out?: number };
 }
@@ -147,7 +151,7 @@ export function layoutWindow(spec: WindowSpec): WindowLayout {
   );
   const contentH = Math.max(centreH, columnMinH(left), columnMinH(right));
 
-  const top = FRAME + TITLE_H + GAP;
+  const top = FRAME + (spec.titleH ?? TITLE_H) + GAP;
   const leftW = hasColumn(left) ? SIDE_W + GAP : 0;
   const rightW = hasColumn(right) ? GAP + SIDE_W : 0;
   const centreX = FRAME + leftW;

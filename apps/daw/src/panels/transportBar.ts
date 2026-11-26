@@ -3,12 +3,13 @@
 // Mobile mode (2026-11-26): two rows (Play, Stop, BPM − +, beat; then Master Volume and Pan),
 // no Add plugin or Sticky note. The shell's `ivd-mobile` class sets the layout (panels/styles.ts).
 
-import { effect } from '@preact/signals-core';
+import { computed, effect } from '@preact/signals-core';
 import type { MountUi } from '../contracts/ui';
 import { CTL_GAIN, CTL_PAN } from '../model/control';
+import { anyLoading } from '../model/loading';
 import { armValid, GAIN_MAX, MASTER_ID } from '../model/project';
 import { addNote, pause, play, setBpm, setGain, setPan, stop } from '../store/actions';
-import { deps, mode, playing, project } from '../store/store';
+import { deps, isMobile, mode, nodeStatus, playing, project } from '../store/store';
 import { addMenuOpen } from './addMenu';
 import { formatBpm, parseBpm, stepBpm } from './bpm';
 import { ensureStyles, h } from './dom';
@@ -35,7 +36,7 @@ export const mountTransportBar: MountUi = (root) => {
   bpmInput.inputMode = 'decimal';
   bpmInput.setAttribute('aria-label', 'BPM');
   bpmWrap.append('BPM', bpmInput);
-  const mobile = mode.peek() === 'mobile';
+  const mobile = isMobile.peek();
   // Mobile: phones have no arrow keys, so − and + step the tempo.
   const bpmStep = (text: string, label: string, dir: 1 | -1): void => {
     const b = h('button', 'ivp-bpm-step', text);
@@ -111,10 +112,13 @@ export const mountTransportBar: MountUi = (root) => {
   noteBtn.disabled = mode.peek() === 'play';
   root.appendChild(bar);
 
+  // Play waits until every plugin has loaded (or failed). Pause is never blocked.
+  const loading = computed(() => anyLoading(project.value.nodes, nodeStatus.value));
+
   // Buttons give focus back to the page, so Space always toggles Play afterwards.
   const toggle = (): void => {
     if (playing.peek()) pause();
-    else void play();
+    else if (!loading.peek()) void play();
   };
   playBtn.addEventListener('click', () => {
     toggle();
@@ -178,6 +182,9 @@ export const mountTransportBar: MountUi = (root) => {
       const on = playing.value;
       playBtn.textContent = on ? 'Pause' : 'Play';
       playBtn.setAttribute('aria-label', on ? 'Pause' : 'Play');
+    }),
+    effect(() => {
+      playBtn.disabled = loading.value && !playing.value;
     }),
     effect(() => {
       const bpm = project.value.transport.bpm;

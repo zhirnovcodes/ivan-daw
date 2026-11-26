@@ -15,7 +15,7 @@ export const PANELS_CSS = `
 .ivp-sep { width: 2px; align-self: stretch; margin: 6px 4px; box-shadow: var(--w95-groove); }
 .ivp-bar button, .ivp-node button, .ivp-menu button { font: inherit; color: #000; background: var(--w95-face); border: 0;
   border-radius: 0; box-shadow: var(--w95-raised); padding: 4px 12px; min-height: 23px; cursor: pointer; }
-.ivp-bar button:active, .ivp-node button:active { box-shadow: var(--w95-pressed); }
+.ivp-bar button:active:not(:disabled), .ivp-node button:active:not(:disabled) { box-shadow: var(--w95-pressed); }
 .ivp-bar button:focus-visible, .ivp-node button:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
 .ivp-play { min-width: 64px; }
 .ivp-bpm { display: flex; align-items: center; gap: 8px; }
@@ -38,6 +38,8 @@ export const PANELS_CSS = `
 .ivp-step { min-height: 19px; width: 22px; padding: 0; }
 .ivp-trig { min-height: 19px; padding: 1px 8px; }
 .ivp-prow.ivp-bound { color: var(--w95-shadow); }
+/* Greyed-out Win95 text, e.g. Play while plugins load. */
+.ivp-bar button:disabled { color: var(--w95-shadow); text-shadow: 1px 1px var(--w95-light); cursor: default; }
 .ivp-menu { font: 13px/1.2 var(--w95-font); color: #000; background: var(--w95-face);
   box-sizing: border-box; -webkit-font-smoothing: none; }
 .ivp-bar { height: 100%; display: flex; align-items: center; gap: 8px; padding: 0 8px; }
@@ -53,7 +55,7 @@ export const PANELS_CSS = `
 .ivp-sep { width: 2px; align-self: stretch; margin: 6px 4px; box-shadow: var(--w95-groove); }
 .ivp-bar button, .ivp-node button, .ivp-menu button { font: inherit; color: #000; background: var(--w95-face); border: 0;
   border-radius: 0; box-shadow: var(--w95-raised); padding: 4px 12px; min-height: 23px; cursor: pointer; }
-.ivp-bar button:active, .ivp-node button:active { box-shadow: var(--w95-pressed); }
+.ivp-bar button:active:not(:disabled), .ivp-node button:active:not(:disabled) { box-shadow: var(--w95-pressed); }
 .ivp-bar button:focus-visible, .ivp-node button:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
 .ivp-play { min-width: 64px; }
 .ivp-bpm { display: flex; align-items: center; gap: 8px; }

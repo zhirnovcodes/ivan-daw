@@ -91,13 +91,24 @@ export const CANVAS_CSS = `
 .ivd-zoombar button:active { box-shadow: var(--w95-pressed); }
 .ivd-zoombar button:focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
 .ivd-zoom-step { width: 23px; }
+/* LOADING label: above the zoom panel (29 px tall + 4 px gap). */
+.ivd-loading { position: absolute; left: var(--ivd-left, 16px); bottom: calc(var(--ivd-bottom, 16px) + 33px); z-index: 10;
+  padding: 3px 8px; font: 700 13px var(--w95-font); color: #000; background: var(--w95-face); box-shadow: var(--w95-raised);
+  pointer-events: none; }
+.ivd-loading[hidden] { display: none; }
 .ivd-zoombar .ivd-zoom { width: 52px; box-sizing: border-box; padding: 0 6px; background: var(--w95-field); box-shadow: var(--w95-sunken); }
 
 /* Mobile mode (2026-11-26): fingers move the camera; covered windows take no input. */
 .ivd-canvas.ivd-mobile { touch-action: none; }
-.ivd-mobile .ivd-node > .w95-titlebar { cursor: default; }
+.ivd-mobile .ivd-node > .w95-titlebar { cursor: default; height: 27px; gap: 3px; padding: 0 3px 0 6px; font-size: 20px; }
+.ivd-mobile .ivd-node > .w95-titlebar .w95-tbtn { width: 24px; height: 21px; font: 17px/21px var(--w95-font); }
+.ivd-mobile .ivd-node > .w95-titlebar .w95-tbtn + .w95-tbtn.close { margin-left: 3px; }
+.ivd-mobile .ivd-onoff { width: 20px; height: 20px; margin-right: 5px; }
+.ivd-mobile .ivd-onoff:checked { background-size: 14px 14px; }
 .ivd-mobile .ivd-node.ivd-covered > :not(.ivd-cover) { isolation: isolate; }
 .ivd-cover { position: absolute; inset: 0; z-index: 100; background: transparent; }
+/* Below the title bar (4 px frame + 27 px), so its on / off, ? and – stay tappable. */
+.ivd-mobile .ivd-cover { top: 31px; }
 
 .ivd-toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); background: var(--w95-face); color: #000;
   box-shadow: var(--w95-raised); padding: 8px 14px; font: 13px var(--w95-font); z-index: 1000; pointer-events: none; }

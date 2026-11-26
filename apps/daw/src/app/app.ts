@@ -18,8 +18,8 @@ import { ensureW95 } from '../panels/w95';
 import { createRouter, type LiveRouter } from '../router/router';
 import { createScheduler, type LiveScheduler } from '../scheduler/scheduler';
 import { loadProject, play, stop } from '../store/actions';
-import { camera, mode, nodeStatus, project, provide, uiSlots } from '../store/store';
-import { readMode } from './mode';
+import { camera, isMobile, mode, nodeStatus, project, provide, uiSlots } from '../store/store';
+import { detectMobile, readMobile, readMode } from './mode';
 import { type Mounted, syncPluginUis } from './pluginUi';
 import { openPath } from './projectUrl';
 
@@ -118,7 +118,9 @@ export async function boot(): Promise<App> {
   const asked = readMode(location.search);
   const devRefused = asked === 'dev' && !(import.meta.env.DEV && isLocalHost(location.hostname));
   mode.value = devRefused ? 'edit' : asked;
-  if (mode.value === 'mobile') setupMobilePage();
+  // Mobile is separate from the mode: ?mobile=true / false, else detected.
+  isMobile.value = readMobile(location.search, detectMobile);
+  if (isMobile.value) setupMobilePage();
   const ui = layout();
   if (devRefused) showToast('Development mode works only on localhost');
   const catalog = await loadCatalog();
@@ -129,7 +131,7 @@ export async function boot(): Promise<App> {
     const { path, missing, otherKind } = await openPath(
       location.search,
       () => fetchPresets(base),
-      mode.value === 'mobile',
+      isMobile.value,
     );
     if (missing !== undefined) showToast(`No saved preset "${missing}"`);
     const doc = await fetchProject(`${base}${path}`);
@@ -185,7 +187,7 @@ export async function boot(): Promise<App> {
   }
   if (mode.value === 'dev') mountPresetPanel(ui.shell);
   mountCanvas(ui.canvas);
-  if (mode.value !== 'mobile') mountAddMenu(ui.menu);
+  if (!isMobile.value) mountAddMenu(ui.menu);
   // Plugins with a manifest.ui show their own UI inside their node box.
   const mountedUis = new Map<string, Mounted>();
   effect(() => {
@@ -206,6 +208,7 @@ export async function boot(): Promise<App> {
       status: () => nodeStatus.value,
       camera: () => camera.value,
       mode: () => mode.value,
+      mobile: () => isMobile.value,
     };
     window.__ivandaw = hook;
   }

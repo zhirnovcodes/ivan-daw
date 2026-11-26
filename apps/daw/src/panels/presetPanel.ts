@@ -1,16 +1,19 @@
 // Development mode (?mode=dev, 2026-11-23): the preset panel, bottom right.
 //   Name field + Mobile toggle · list of saved presets (a click puts that name and kind in the
-//   fields) · Save · Delete.
+//   fields) · Load · Save · Delete.
 // A preset is a name plus the Mobile flag (2026-11-26): mobile ones show a MOBILE suffix in the list.
 // Save writes the whole project, with each plugin's own state and the current zoom and scroll, to
 // public/presets/ through the dev server (vite/presets.ts); the preset with that name and kind is
-// replaced. Delete asks first.
-// A saved preset opens with ?preset=<Preset Name>; with &mode=mobile the mobile one is preferred.
+// replaced. Delete asks first. Load (2026-11-26) opens the chosen preset in place of the project now
+// open, as ?preset= would, and puts ?preset=<name> in the address so a reload keeps it.
+// A saved preset opens with ?preset=<Preset Name>; on the mobile version (?mobile=true, or a phone)
+// the mobile one is preferred. The Mobile toggle starts as the page's own version.
 
 import { captureState } from '../model/pluginState';
 import { fetchPresets, type PresetEntry, presetSlug, samePreset } from '../model/presets';
-import { MASTER_ID, type Project } from '../model/project';
-import { camera, project } from '../store/store';
+import { fetchProject, MASTER_ID, type Project } from '../model/project';
+import { loadProject, stop } from '../store/actions';
+import { camera, isMobile, project } from '../store/store';
 import { ensureStyles, h } from './dom';
 import { panelServices } from './services';
 import { titleBar } from './w95';
@@ -29,6 +32,7 @@ const CSS = `
 .ivp-presets-list li[aria-selected="true"] { background: var(--w95-select); color: #fff; }
 .ivp-presets-list .empty { color: var(--w95-shadow); cursor: default; }
 .ivp-presets-row { display: flex; gap: 6px; justify-content: flex-end; }
+.ivp-presets-row > :first-child { margin-right: auto; }
 .ivp-presets-status { min-height: 15px; font-size: 12px; }
 .ivp-modal-back { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center;
   background: rgb(0 0 0 / 0.15); }
@@ -129,8 +133,9 @@ export function mountPresetPanel(root: HTMLElement): () => void {
   name.setAttribute('aria-label', 'Preset name');
   const mobileBox = h('input', '');
   mobileBox.type = 'checkbox';
+  mobileBox.checked = isMobile.peek();
   const mobileLabel = h('label', 'ivp-presets-mobile');
-  mobileLabel.title = 'A preset for ?mode=mobile';
+  mobileLabel.title = 'A preset for the mobile version (?mobile=true)';
   mobileLabel.append(mobileBox, 'Mobile');
   const top = h('div', 'ivp-presets-top');
   top.append(name, mobileLabel);
@@ -138,11 +143,13 @@ export function mountPresetPanel(root: HTMLElement): () => void {
   list.setAttribute('role', 'listbox');
   list.setAttribute('aria-label', 'Saved presets');
   const row = h('div', 'ivp-presets-row');
+  const load = h('button', 'w95-btn', 'Load');
+  load.type = 'button';
   const save = h('button', 'w95-btn', 'Save');
   save.type = 'button';
   const del = h('button', 'w95-btn', 'Delete');
   del.type = 'button';
-  row.append(save, del);
+  row.append(load, save, del);
   const status = h('div', 'ivp-presets-status');
   status.setAttribute('role', 'status');
   body.append(top, list, row, status);
@@ -163,6 +170,7 @@ export function mountPresetPanel(root: HTMLElement): () => void {
     }
     save.disabled = busy || presetSlug(name.value) === '';
     del.disabled = busy || !hit;
+    load.disabled = busy || !hit;
   };
   const render = (): void => {
     list.replaceChildren();
@@ -173,7 +181,7 @@ export function mountPresetPanel(root: HTMLElement): () => void {
       li.dataset.file = p.file;
       li.setAttribute('role', 'option');
       li.setAttribute('aria-label', label(p.name, p.mobile));
-      li.title = `Open with ?preset=${p.name}${p.mobile ? '&mode=mobile' : ''}`;
+      li.title = `Open with ?preset=${p.name}&mobile=${p.mobile}`;
       li.addEventListener('click', () => {
         name.value = p.name;
         mobileBox.checked = p.mobile;
@@ -214,6 +222,30 @@ export function mountPresetPanel(root: HTMLElement): () => void {
       const replaced = match() !== undefined;
       await send('PUT', `/__presets/preset?${presetQuery(n, mobile)}`, JSON.stringify(doc));
       return `${replaced ? 'Replaced' : 'Saved'} "${label(n, mobile)}"`;
+    });
+  });
+  load.addEventListener('click', () => {
+    const hit = match();
+    if (!hit) return;
+    void run(async () => {
+      const doc = await fetchProject(`${base}presets/${hit.file}`);
+      // Made for the other kind of screen: keep the graph, not the view (as at boot).
+      if (hit.mobile !== isMobile.peek()) delete doc.view;
+      stop();
+      // The engine keeps a plugin whose node id survives, so clear the graph first: every plugin
+      // of the preset then loads fresh, with its saved state.
+      loadProject({
+        ...doc,
+        nodes: doc.nodes.filter((n) => n.id === MASTER_ID),
+        cables: [],
+        arms: [],
+      });
+      loadProject(doc);
+      const url = new URL(location.href);
+      url.searchParams.delete('project');
+      url.searchParams.set('preset', hit.name);
+      history.replaceState(history.state, '', url);
+      return `Loaded "${label(hit.name, hit.mobile)}"`;
     });
   });
   del.addEventListener('click', async () => {

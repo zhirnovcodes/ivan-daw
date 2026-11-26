@@ -8,9 +8,9 @@ import { effect } from '@preact/signals-core';
 import type { Note } from '../model/project';
 import { titleBar } from '../panels/w95';
 import { editNote, moveNote, removeNote, resizeNote, setNoteText } from '../store/actions';
-import { camera, editingNote, mode, project } from '../store/store';
+import { camera, editingNote, isMobile, mode, project } from '../store/store';
 import { renderNoteText } from './noteText';
-import { wiringLocked } from './playOnly';
+import { rulesFor, wiringLocked } from './playOnly';
 
 interface NoteView {
   el: HTMLDivElement;
@@ -42,7 +42,7 @@ function drag(
 
 export function mountNotes(layer: HTMLElement): () => void {
   const views = new Map<string, NoteView>();
-  const readOnly = (): boolean => wiringLocked(mode.peek());
+  const readOnly = (): boolean => wiringLocked(rulesFor(mode.peek(), isMobile.peek()));
 
   function build(note: Note): NoteView {
     const el = document.createElement('div');

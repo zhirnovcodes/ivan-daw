@@ -44,7 +44,7 @@
           "name": "Beatality",
           "bpm": 120,
           "loop": 16,
-          "slices": 2,
+          "slices": -2,
           "attack": 2,
           "volume": 1,
           "panMin": -0.55,
@@ -57,29 +57,29 @@
             "globalChance": 0.36,
             "beatMin": -2,
             "beatMax": 0,
-            "delayPower": 0.6207592074990272,
-            "delayChance": 0.29517645400762554,
-            "reverbPower": 0.10364135962724687,
-            "reverbChance": 0.5391269640326499,
-            "reversePower": 0.9009811350226402,
-            "reverseChance": 0.15623727244138716,
-            "filterPower": 0.7706982613444329,
-            "filterChance": 0.34792664438486093,
-            "flangerPower": 0.5384962007641793,
-            "flangerChance": 0.38963954925537103,
-            "trancePower": 0.4936883305072785,
-            "tranceChance": 0.33873586708307263,
-            "shiftPower": 0.253382352077961,
-            "shiftChance": 0.08182283288240433
+            "delayPower": 0.6091498496413231,
+            "delayChance": 0.2579082525968551,
+            "reverbPower": 0.22694619221687318,
+            "reverbChance": 0.3015037629604339,
+            "reversePower": 0.3061419196724892,
+            "reverseChance": 0.0853588980436325,
+            "filterPower": 0.8730461530089378,
+            "filterChance": 0.44918703287839884,
+            "flangerPower": 0.25131704555749895,
+            "flangerChance": 0.369381565272808,
+            "trancePower": 0.834060023534298,
+            "tranceChance": 0.19654864913225173,
+            "shiftPower": 0.15456811414957047,
+            "shiftChance": 0.14617794162034986
           },
           "repeat": {
             "enabled": true,
             "sizeMin": -3,
             "sizeMax": -2,
-            "length": -1,
-            "chance": 0.3863644428253174,
-            "mix": 0.2606164610385895,
-            "positions": [true, true, false, true, true, true, false, true]
+            "length": -2,
+            "chance": 0.3478705714941025,
+            "mix": 0.22492541313171388,
+            "positions": [false, false, true, false, true, false, false, true]
           },
           "chaos": {
             "trigger": "loop",
@@ -340,9 +340,9 @@
           "params": {
             "filterDw1": 0.9937499999999999,
             "filterPos1": 0.7,
-            "reverbDw1": 0.3,
+            "reverbDw1": 0,
             "reverbFeedback1": 0.2,
-            "delayDw1": 0.3125,
+            "delayDw1": 0,
             "delayTime1": 0.6360577,
             "filterDw2": 0.5375,
             "filterPos2": 0.75625,
@@ -387,7 +387,7 @@
             "lfo3Sync": 1,
             "lfo3Retrig": 0,
             "lfo3Offset": 0,
-            "osc1Oct": -2,
+            "osc1Oct": -3,
             "osc2Oct": -2,
             "osc1Detune": 0,
             "osc2Detune": 0,
@@ -421,8 +421,8 @@
           "slices": -1,
           "attack": 2,
           "volume": 1,
-          "panMin": -0.39892270088195797,
-          "panMax": 0.6220801073312759,
+          "panMin": -0.5001042205095291,
+          "panMax": 0.4976893132925033,
           "bpmSync": true,
           "retrig": true,
           "effects": {
@@ -448,12 +448,12 @@
           },
           "repeat": {
             "enabled": true,
-            "sizeMin": -4,
-            "sizeMax": -3,
-            "length": 1,
-            "chance": 0.30955785655975343,
-            "mix": 0.6597063815593719,
-            "positions": [false, true, true, false, false, false, false, true]
+            "sizeMin": 0,
+            "sizeMax": 0,
+            "length": 0,
+            "chance": 0.22295377254486082,
+            "mix": 0.46003011852502823,
+            "positions": [false, true, false, true, true, true, false, false]
           },
           "chaos": {
             "trigger": "loop",
@@ -690,8 +690,8 @@
     }
   ],
   "view": {
-    "x": 243.82899071507177,
-    "y": -890.0796951388356,
+    "x": 321.84264159175507,
+    "y": -822.2417378547668,
     "z": 0.8844605940704866
   }
 }

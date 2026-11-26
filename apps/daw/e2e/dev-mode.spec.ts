@@ -46,6 +46,16 @@ test('dev mode saves, lists, replaces, opens and deletes a preset', async ({ pag
   await expect(status).toHaveText(`Replaced "${NAME}"`);
   await expect(panel.getByRole('option', { name: NAME, exact: true })).toHaveCount(1);
 
+  // Load opens it in place of the open project, and puts ?preset= in the address.
+  await page.getByRole('textbox', { name: 'BPM' }).fill('90');
+  await page.getByRole('textbox', { name: 'BPM' }).press('Enter');
+  await panel.getByRole('button', { name: 'Load' }).click();
+  await expect(status).toHaveText(`Loaded "${NAME}"`);
+  const loaded = await page.evaluate(() => window.__ivandaw?.project());
+  expect(loaded?.transport.bpm).toBe(133);
+  expect(new URL(page.url()).searchParams.get('preset')).toBe(NAME);
+  await expect.poll(() => page.evaluate(() => window.__ivandaw?.status().n2)).toBe('ready');
+
   // ?preset= opens it, with each plugin's own state.
   await openDemo(page, `/?preset=${encodeURIComponent(NAME)}&mode=dev`);
   const p = await page.evaluate(() => window.__ivandaw?.project());
@@ -104,18 +114,26 @@ test('mobile and desktop presets of one name, each with its own view', async ({
   await panel.getByRole('option', { name: NAME, exact: true }).click();
   await expect(panel.getByRole('checkbox', { name: 'Mobile' })).not.toBeChecked();
 
-  // Each mode opens its own kind, at its saved view.
+  // Each version opens its own kind, at its saved view.
   await openDemo(page, `/?preset=${encodeURIComponent(NAME)}&mode=dev`);
   expect(await bpmNow()).toBe(111);
   expect(await cam()).toEqual(desktopView);
   await page.setViewportSize({ width: 390, height: 844 });
-  await openDemo(page, `/?preset=${encodeURIComponent(NAME)}&mode=mobile`);
+  await openDemo(page, `/?preset=${encodeURIComponent(NAME)}&mobile=true`);
   expect(await bpmNow()).toBe(142);
   expect(await cam()).toEqual(mobileView);
 
-  // With no mobile preset of that name, mobile mode opens the desktop one.
+  // Dev mode works on the mobile version too: the preset panel is there, Mobile starts ticked.
+  await openDemo(page, `/?preset=${encodeURIComponent(NAME)}&mode=dev&mobile=true`);
+  expect(await page.evaluate(() => window.__ivandaw?.mode())).toBe('dev');
+  expect(await page.evaluate(() => window.__ivandaw?.mobile())).toBe(true);
+  await expect(page.locator('html')).toHaveClass(/ivd-mobile/);
+  await expect(panel.getByRole('checkbox', { name: 'Mobile' })).toBeChecked();
+  expect(await bpmNow()).toBe(142);
+
+  // With no mobile preset of that name, the mobile version opens the desktop one.
   await request.delete(`/__presets/preset?name=${encodeURIComponent(NAME)}&mobile=1`);
-  await openDemo(page, `/?preset=${encodeURIComponent(NAME)}&mode=mobile`);
+  await openDemo(page, `/?preset=${encodeURIComponent(NAME)}&mobile=true`);
   expect(await bpmNow()).toBe(111);
   await expect(page.locator('.ivd-toast')).toHaveCount(0);
 });

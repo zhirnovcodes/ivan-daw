@@ -23,5 +23,10 @@
     "name": "AllInstruments",
     "mobile": false,
     "file": "allinstruments.json"
+  },
+  {
+    "name": "AllInstruments",
+    "mobile": true,
+    "file": "allinstruments.mobile.json"
   }
 ]

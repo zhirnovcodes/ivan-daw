@@ -13,8 +13,10 @@ export interface IvanDawTestHook {
   status(): Record<string, string>;
   /** The canvas camera: world point at the canvas's top-left (v1.1) and zoom `z`, 1 = 100% (v1.1.2). */
   camera(): { x: number; y: number; z: number };
-  /** From ?mode=: normal → 'edit', play_only → 'play', dev → 'dev' (dev server only), mobile → 'mobile'. */
-  mode(): 'edit' | 'play' | 'dev' | 'mobile';
+  /** From ?mode=: normal → 'edit', play_only → 'play', dev → 'dev' (dev server only). */
+  mode(): 'edit' | 'play' | 'dev';
+  /** From ?mobile=true / false, else detected (a touch screen with no hover). */
+  mobile(): boolean;
 }
 
 declare global {

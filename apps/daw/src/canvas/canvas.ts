@@ -10,6 +10,7 @@ import { REFUSE_TEXT } from '../contracts/router';
 import type { MountUi } from '../contracts/ui';
 import { coveredOnMobile, hasStrip, type PortsManifest } from '../model/catalog';
 import { CTL_GAIN, CTL_PAN } from '../model/control';
+import { anyLoading } from '../model/loading';
 import { pluginInfo } from '../model/pluginInfo';
 import {
   type ArmEnd,
@@ -47,7 +48,16 @@ import {
   type Rect,
   wheelZoom,
 } from '../store/camera';
-import { camera, deps, mode, nodeErrors, nodeStatus, project, selection } from '../store/store';
+import {
+  camera,
+  deps,
+  isMobile,
+  mode,
+  nodeErrors,
+  nodeStatus,
+  project,
+  selection,
+} from '../store/store';
 import { controlChoices } from './controls';
 import {
   cableMidpoint,
@@ -72,7 +82,7 @@ import {
 import { armName, displayNames } from './names';
 import { mountNotes } from './notes';
 import { renderNoteText } from './noteText';
-import { permits, playTarget, wiringLocked } from './playOnly';
+import { permits, playTarget, rulesFor, wiringLocked } from './playOnly';
 import { extentsOf, mountScrollbars, SCROLLBAR_CSS } from './scrollbars';
 import { canvasServices } from './services';
 import { CANVAS_CSS } from './styles';
@@ -81,6 +91,7 @@ import {
   armDot,
   type Box,
   layoutWindow,
+  MOBILE_TITLE_H,
   PARAM_ROW,
   type PortLite,
   portDot,
@@ -186,10 +197,12 @@ const modOuts = (manifest: PortsManifest | undefined) =>
 export const mountCanvas: MountUi = (root) => {
   ensureStyles();
   const canvas = h('div', 'ivd-canvas');
+  // Mode and mobile are set once at boot.
+  const mobile = isMobile.peek();
+  const rules = rulesFor(mode.peek(), mobile);
   // Play-only and mobile: cables are drawn dashed and can't be hovered or clicked.
-  canvas.classList.toggle('ivd-play', wiringLocked(mode.peek()));
+  canvas.classList.toggle('ivd-play', wiringLocked(rules));
   // Mobile: fingers move the camera; plugin windows are covered (see `syncCover`).
-  const mobile = mode.peek() === 'mobile';
   canvas.classList.toggle('ivd-mobile', mobile);
   const svg = s('svg', {}, 'ivd-cables');
   const cableLayer = s('g');
@@ -219,7 +232,10 @@ export const mountCanvas: MountUi = (root) => {
   const zoomIn = zoomBtn('ivd-zoom-step', '+', 'Zoom in');
   zoomPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
   zoomPanel.addEventListener('wheel', (e) => e.stopPropagation());
-  canvas.append(world, zoomPanel);
+  // LOADING label, just above the zoom panel, while any plugin is still loading.
+  const loadingLabel = h('div', 'ivd-loading', 'LOADING');
+  loadingLabel.setAttribute('role', 'status');
+  canvas.append(world, zoomPanel, loadingLabel);
   root.appendChild(canvas);
 
   const views = new Map<string, NodeView>();
@@ -359,6 +375,10 @@ export const mountCanvas: MountUi = (root) => {
             fitting = false;
             return true;
           }
+          // Title bar controls (on / off, ?, –) and the info note's X work on every window.
+          if (t.closest('.ivd-node > .w95-titlebar, .ivd-info-note > .w95-titlebar')) {
+            return t.closest('input, button:not(:disabled)') !== null;
+          }
           const node = t.closest('.ivd-node');
           if (!node || node.classList.contains('ivd-covered')) return false;
           return t.closest('input, select, textarea, button, a, label, .ivd-ui') !== null;
@@ -370,7 +390,7 @@ export const mountCanvas: MountUi = (root) => {
     : () => {};
 
   function run(e: Effect): void {
-    if (!permits(mode.peek(), e)) return;
+    if (!permits(rules, e)) return;
     switch (e.type) {
       case 'moveNode':
         moveNode(e.id, e.x, e.y);
@@ -506,7 +526,7 @@ export const mountCanvas: MountUi = (root) => {
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
-    const target = playTarget(mode.peek(), asked);
+    const target = playTarget(rules, asked);
     if (!target) return;
     dispatch({ type: 'down', target, at: rel(e) });
     if (capture && state.mode !== 'idle') track(capture, e);
@@ -583,6 +603,9 @@ export const mountCanvas: MountUi = (root) => {
     zoomLabel.textContent = `${Math.round(c.z * 100)}%`;
     scheduleScrollbars();
   });
+  const stopLoading = effect(() => {
+    loadingLabel.hidden = !anyLoading(project.value.nodes, nodeStatus.value);
+  });
   const stopScrollProject = effect(() => {
     void project.value;
     scheduleScrollbars();
@@ -644,21 +667,11 @@ export const mountCanvas: MountUi = (root) => {
     };
   }
 
-  /** Title bar: on / off box, name, `?`, `_` (plugins with a UI), `X` (not Master; greyed in play-only). */
+  /** Title bar: on / off box, name, `?`, `_` (plugins with a UI), `X` (not Master; greyed in play-only and mobile). */
   function buildTitle(id: string, v: NodeView): void {
     v.el.querySelector(':scope > .w95-titlebar')?.remove();
     const isMaster = v.plugin === MASTER_PLUGIN;
     const buttons: Parameters<typeof titleBar>[1][number][] = [];
-    // Mobile: a bare title bar, no on / off box and no buttons.
-    if (mobile) {
-      const { bar, caption } = titleBar(v.manifest?.name ?? v.plugin, []);
-      bar.classList.add('ivd-header');
-      v.caption = caption;
-      v.fold = undefined;
-      v.check = undefined;
-      v.el.prepend(bar);
-      return;
-    }
     if (!isMaster) {
       buttons.push({ label: '?', title: 'About this plugin', onClick: () => toggleInfo(id) });
     }
@@ -670,8 +683,8 @@ export const mountCanvas: MountUi = (root) => {
       });
     }
     if (!isMaster) {
-      // Play-only: the X stays, greyed out.
-      const locked = wiringLocked(mode.peek());
+      // Play-only and mobile: the X stays, greyed out.
+      const locked = wiringLocked(rules);
       buttons.push({
         label: 'X',
         title: 'Remove plugin',
@@ -704,13 +717,19 @@ export const mountCanvas: MountUi = (root) => {
   }
 
   /**
-   * Mobile: a covered window gets a see-through cover on top and its content is made inert, so
-   * no touch, click or focus reaches the plugin; a drag over it pans the camera.
+   * Mobile: a covered window gets a see-through cover below its title bar and its content (all but
+   * the title bar) is made inert, so no touch, click or focus reaches the plugin; a drag over it pans
+   * the camera. Runs on every update, since the parameter strip can be added later.
    */
   function syncCover(v: NodeView): void {
     const covered = mobile && coveredOnMobile(v.plugin, v.manifest);
     v.el.classList.toggle('ivd-covered', covered);
-    v.el.inert = covered;
+    // The title bar stays live (on / off, ?, –); the cover starts below it.
+    for (const c of v.el.children) {
+      if (c instanceof HTMLElement && !c.classList.contains('w95-titlebar') && c !== v.cover) {
+        c.inert = covered;
+      }
+    }
     if (covered && !v.cover) {
       v.cover = h('div', 'ivd-cover'); // z-index: above everything the window holds
       v.cover.setAttribute('aria-hidden', 'true');
@@ -896,7 +915,6 @@ export const mountCanvas: MountUi = (root) => {
         buildTitle(n.id, v);
         buildUi(n.id, v);
         buildFooter(n.id, v);
-        syncCover(v);
         v.sig = '';
       }
       const st = status[n.id] ?? 'loading';
@@ -923,6 +941,7 @@ export const mountCanvas: MountUi = (root) => {
         ...(v.ui && !v.uiHidden ? { ui: v.ui.box } : {}),
         paramRows: v.params ? params.length : 0,
         footer: v.footer !== undefined,
+        ...(mobile ? { titleH: MOBILE_TITLE_H } : {}),
         page: v.page,
       };
       const sig = JSON.stringify(spec);
@@ -936,6 +955,7 @@ export const mountCanvas: MountUi = (root) => {
         v.el.style.width = `${v.layout.w}px`;
         v.el.style.height = `${v.layout.h}px`;
       }
+      syncCover(v);
       v.el.style.transform = `translate(${n.x}px, ${n.y}px)`;
 
       if (v.footer) {
@@ -1212,6 +1232,7 @@ export const mountCanvas: MountUi = (root) => {
     fitObs.disconnect();
     cancelAnimationFrame(fitFrame);
     stopCamera();
+    stopLoading();
     stopScrollProject();
     cancelAnimationFrame(scrollFrame);
     resizeObs.disconnect();

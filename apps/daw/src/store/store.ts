@@ -53,10 +53,14 @@ export const camera = signal<Camera>({ x: 0, y: 0, z: 1 });
 export const editingNote = signal<string | undefined>(undefined);
 /**
  * 'play' = play-only (v1.1): the wiring is locked, the sound stays playable.
- * 'dev' = edit mode plus the preset panel (dev server only).
- * 'mobile' = play-only for touch screens (2026-11-26). Set once at boot.
+ * 'dev' = edit mode plus the preset panel (dev server only). Set once at boot.
  */
 export const mode = signal<Mode>('edit');
+/**
+ * The touch-screen version (2026-11-26; its own ?mobile= since then, detected when missing).
+ * Play-only and stricter whatever the mode; see canvas/playOnly.ts. Set once at boot.
+ */
+export const isMobile = signal(false);
 /**
  * Node id → the element inside its box where the plugin's own UI goes (v1.1).
  * The canvas writes it through `setUiSlot`; the app shell mounts plugin UIs into these.

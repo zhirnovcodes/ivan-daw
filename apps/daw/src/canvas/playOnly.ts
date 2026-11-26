@@ -5,21 +5,26 @@
 
 import type { Effect, Target } from './gesture';
 
+/** The page's ?mode=. 'dev' is edit mode plus the preset panel; the canvas treats it as edit. */
+export type Mode = 'edit' | 'play' | 'dev';
+
 /**
- * 'dev' is edit mode plus the preset panel; the canvas treats it as edit.
- * 'mobile' (2026-11-26) is play-only for touch screens and stricter: plugins can't be moved,
- * switched on / off or opened; a finger drag anywhere pans the camera instead.
+ * The canvas rules in force: the mode's, or 'mobile' (2026-11-26; ?mobile=, separate from the mode
+ * since then), which is play-only for touch screens and stricter whatever the mode: plugins can't
+ * be moved, switched on / off or opened; a finger drag anywhere pans the camera instead.
  */
-export type Mode = 'edit' | 'play' | 'dev' | 'mobile';
+export type Rules = Mode | 'mobile';
+
+export const rulesFor = (mode: Mode, mobile: boolean): Rules => (mobile ? 'mobile' : mode);
 
 /** Whether the wiring is locked: play-only and mobile. */
-export const wiringLocked = (mode: Mode): boolean => mode === 'play' || mode === 'mobile';
+export const wiringLocked = (mode: Rules): boolean => mode === 'play' || mode === 'mobile';
 
 /**
  * What a pointer-down becomes in this mode, or undefined to ignore it.
  * In play mode no connector starts a cable and no cable can be picked.
  */
-export function playTarget(mode: Mode, t: Target): Target | undefined {
+export function playTarget(mode: Rules, t: Target): Target | undefined {
   if (mode === 'mobile') return t.kind === 'empty' || t.kind === 'body' ? t : undefined;
   if (mode !== 'play') return t;
   switch (t.kind) {
@@ -35,7 +40,7 @@ export function playTarget(mode: Mode, t: Target): Target | undefined {
 }
 
 /** Whether a canvas effect may run in this mode. */
-export function permits(mode: Mode, e: Effect): boolean {
+export function permits(mode: Rules, e: Effect): boolean {
   if (mode === 'mobile') return e.type === 'select';
   if (mode !== 'play') return true;
   switch (e.type) {
