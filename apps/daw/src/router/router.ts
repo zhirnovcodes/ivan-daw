@@ -6,9 +6,19 @@
 // v1.2: control edges come from ARM links, mapped through their Min / Max. A plugin that is off
 // (`bypass`) sends nothing. A MIDI plugin's Volume scales the velocity of its note-ons and its Pan goes
 // out as MIDI pan (CC 10). Design: docs/v1.2-redesign.md, "4. Plugin windows" and "7. ARM connections".
+// Host-driven MIDI: one ticker calls `render(until)` on every plugin that has it, sources first, so a
+// MIDI plugin's input is in place before it renders. Brief: docs/plugin-dev/tasks/host-driven-render.md.
 
 import { effect } from '@preact/signals-core';
-import { allNotesOff, beatAt, type PluginEvent, type PluginInstance } from 'ivandaw-core';
+import {
+  allNotesOff,
+  beatAt,
+  createTicker,
+  LOOKAHEAD,
+  type PluginEvent,
+  type PluginInstance,
+  TICK_MS,
+} from 'ivandaw-core';
 import type { Engine } from '../contracts/engine';
 import type { Router, Wiring, WiringEdge } from '../contracts/router';
 import { glideTo, rampTo } from '../engine/ramp';
@@ -32,6 +42,49 @@ export interface RouterOptions {
   engine: Engine;
   /** Shown once per node when its plugin throws in schedule() or a listener (the canvas toast). */
   onNotify?: (node: string, message: string) => void;
+  /** Wakes the render loop. Default: `createTicker` from ivandaw-core. Tests pass a fake. */
+  ticker?: (ms: number, tick: () => void) => { stop(): void };
+}
+
+/** A plugin the host can drive: `render(until)` emits every event before `until`, synchronously. */
+export type Renderable = PluginInstance & { render?(until: number): void };
+
+/**
+ * Nodes in the order their events flow along `table` (`<node>:<port>` → targets): every node comes
+ * after each node that feeds it. Nodes in a loop keep their given order, after the rest.
+ */
+export function renderOrder(
+  nodes: readonly string[],
+  table: ReadonlyMap<string, readonly { node: string }[]>,
+): string[] {
+  const set = new Set(nodes);
+  const next = new Map<string, Set<string>>();
+  const indegree = new Map<string, number>(nodes.map((n) => [n, 0]));
+  for (const [key, targets] of table) {
+    const from = key.slice(0, key.lastIndexOf(':'));
+    if (!set.has(from)) continue;
+    for (const t of targets) {
+      if (!set.has(t.node) || t.node === from) continue;
+      const out = next.get(from) ?? new Set<string>();
+      if (out.has(t.node)) continue;
+      out.add(t.node);
+      next.set(from, out);
+      indegree.set(t.node, (indegree.get(t.node) ?? 0) + 1);
+    }
+  }
+  const order: string[] = [];
+  const queue = nodes.filter((n) => indegree.get(n) === 0);
+  while (queue.length > 0) {
+    const n = queue.shift() as string;
+    order.push(n);
+    for (const t of next.get(n) ?? []) {
+      const d = (indegree.get(t) ?? 0) - 1;
+      indegree.set(t, d);
+      if (d === 0) queue.push(t);
+    }
+  }
+  if (order.length < nodes.length) order.push(...nodes.filter((n) => !order.includes(n)));
+  return order;
 }
 
 export interface LiveRouter extends Router {
@@ -117,6 +170,10 @@ export function createRouter(opts: RouterOptions): LiveRouter {
   /** MIDI plugin → the CC 10 value last sent, and the channels it has sent notes on. */
   const panSent = new Map<string, number>();
   const channels = new Map<string, Set<number>>();
+  /** Ready nodes with `render()`, sources first; the render loop's ticker; the last `until` sent. */
+  let renderers: string[] = [];
+  let renderTicker: { stop(): void } | undefined;
+  let lastUntil = Number.NEGATIVE_INFINITY;
 
   const report = (node: string, what: string, e: unknown): void => {
     const message = `${what} failed: ${e instanceof Error ? e.message : String(e)}`;
@@ -356,9 +413,27 @@ export function createRouter(opts: RouterOptions): LiveRouter {
     }
   }
 
+  /** One render pass: every host-driven plugin renders up to the same `until`, sources first. */
+  function renderPass(): void {
+    if (renderers.length === 0) return;
+    const until = Math.max(lastUntil, engine.context.currentTime + LOOKAHEAD);
+    lastUntil = until;
+    for (const id of renderers) {
+      const inst = engine.get(id)?.instance as Renderable | undefined;
+      if (!inst?.render) continue;
+      try {
+        inst.render(until);
+      } catch (e) {
+        report(id, 'render', e);
+      }
+    }
+  }
+
   /** Transport, tempo and CC 123 from the scheduler go to every ready node, no cable needed. */
   function broadcast(e: PluginEvent): void {
     for (const id of ready) send(id, [e]);
+    // Play, Pause, Stop: book the first notes now, not on the next tick.
+    if (e.type === 'transport') renderPass();
   }
 
   function syncListeners(): void {
@@ -400,6 +475,10 @@ export function createRouter(opts: RouterOptions): LiveRouter {
     const joined = [...nowReady].filter((id) => !ready.has(id));
     ready = nowReady;
     syncListeners();
+    const all = [...ready];
+    renderers = renderOrder(all, table).filter(
+      (id) => typeof (engine.get(id)?.instance as Renderable | undefined)?.render === 'function',
+    );
     // A node that joins while playing gets the current anchor at now, so it plays in time.
     const a = deps.value.scheduler.anchor.peek();
     if (a.state.playing && joined.length > 0) {
@@ -408,6 +487,7 @@ export function createRouter(opts: RouterOptions): LiveRouter {
       for (const id of joined) {
         send(id, [{ type: 'transport', time: Math.max(t, a.time), state }]);
       }
+      renderPass();
     }
   }
 
@@ -421,7 +501,12 @@ export function createRouter(opts: RouterOptions): LiveRouter {
     attach() {
       const stopSync = effect(sync);
       const stopTransport = effect(() => deps.value.scheduler.onEvent(broadcast));
+      renderTicker = (opts.ticker ?? createTicker)(TICK_MS, renderPass);
       return () => {
+        renderTicker?.stop();
+        renderTicker = undefined;
+        renderers = [];
+        lastUntil = Number.NEGATIVE_INFINITY;
         stopSync();
         stopTransport();
         for (const s of subs.values()) s.off();

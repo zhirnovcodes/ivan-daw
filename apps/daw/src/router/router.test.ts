@@ -29,6 +29,7 @@ import {
   createRouter,
   type LiveRouter,
   panToCc,
+  renderOrder,
   scaleVelocity,
 } from './router';
 
@@ -78,7 +79,15 @@ interface Fake extends PluginInstance {
   got: PluginEvent[];
   emit(e: PluginEvent): void;
   throws: boolean;
+  /** MIDI fakes (gen, arp) only: host-driven rendering. Calls `onRender`. */
+  render?(until: number): void;
+  onRender?: (until: number) => void;
 }
+
+/** Every render() call, in order: node id and `until`. */
+let renders: { id: string; until: number }[];
+/** The router's render loop tick (fake ticker). */
+let renderTick: (() => void) | undefined;
 
 let ctx: FakeAudioContext;
 let master: FakeGain;
@@ -154,8 +163,16 @@ function fakeInstance(plugin: string): Fake {
     resume: () => {},
     dispose: () => {},
   };
+  if (plugin === GEN || plugin === ARP) {
+    inst.render = (until) => {
+      renders.push({ id: idOf(inst), until });
+      inst.onRender?.(until);
+    };
+  }
   return inst;
 }
+
+const idOf = (inst: Fake): string => [...loaded].find(([, n]) => n.instance === inst)?.[0] ?? '?';
 
 /** Simulates the engine finishing a load: live node + strip, then status 'ready'. */
 function ready(id: string): Fake {
@@ -187,6 +204,8 @@ beforeEach(() => {
   master = ctx.createGain();
   loaded = new Map();
   notices = [];
+  renders = [];
+  renderTick = undefined;
   clock = 0;
   deps.value = defaultDeps();
   provide({
@@ -223,7 +242,18 @@ beforeEach(() => {
       return { param: which === 'gain' ? s.input.gain : s.output.pan, scale: 1 };
     },
   };
-  router = createRouter({ engine, onNotify: (node, msg) => notices.push(`${node}: ${msg}`) });
+  router = createRouter({
+    engine,
+    onNotify: (node, msg) => notices.push(`${node}: ${msg}`),
+    ticker: (_ms, tick) => {
+      renderTick = tick;
+      return {
+        stop: () => {
+          renderTick = undefined;
+        },
+      };
+    },
+  });
   provide({ router });
   detach = router.attach();
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -572,5 +602,124 @@ describe('on / off and MIDI plugin volume / pan (v1.2)', () => {
     expect(panToCc(-1)).toBe(0);
     expect(panToCc(0)).toBe(64);
     expect(panToCc(1)).toBe(127);
+  });
+});
+
+describe('host-driven render (render(until))', () => {
+  /** n1 (gen) → a1 (arp) → a2 (arp) → n3 (synth), wired in reverse so cable order can't help. */
+  function chain() {
+    const syn = ready('n3');
+    const b = ready('a2');
+    const a = ready('a1');
+    const gen = ready('n1');
+    for (const [f, t] of [
+      ['a2', 'n3'],
+      ['a1', 'a2'],
+      ['n1', 'a1'],
+    ] as const) {
+      const r = connect({ node: f, port: 'out' }, { node: t, port: 'in' });
+      if (!r.ok) throw new Error(`${f} → ${t}: ${r.reason}`);
+    }
+    renders = [];
+    return { gen, a, b, syn };
+  }
+
+  it('each tick renders every MIDI plugin to now + 100 ms, sources first', () => {
+    chain();
+    ctx.currentTime = 2;
+    renderTick?.();
+    expect(renders).toEqual([
+      { id: 'n1', until: 2.1 },
+      { id: 'a1', until: 2.1 },
+      { id: 'a2', until: 2.1 },
+    ]);
+  });
+
+  it('a note emitted while the source renders reaches the next plugin before it renders', () => {
+    const { gen, a, b, syn } = chain();
+    gen.onRender = () => gen.emit({ type: 'midi', time: 1.05, bytes: [0x90, 60, 100] });
+    a.onRender = () => {
+      expect(a.got.some((e) => e.type === 'midi' && e.time === 1.05)).toBe(true);
+      a.emit({ type: 'midi', time: 1.05, bytes: [0x90, 64, 100] });
+    };
+    b.onRender = () => {
+      expect(b.got.some((e) => e.type === 'midi' && e.time === 1.05)).toBe(true);
+      b.emit({ type: 'midi', time: 1.05, bytes: [0x90, 67, 100] });
+    };
+    ctx.currentTime = 1;
+    renderTick?.();
+    expect(syn.got).toContainEqual({
+      type: 'midi',
+      time: 1.05,
+      bytes: [0x90, 67, 100],
+      port: 'in',
+    });
+  });
+
+  it('Play runs a render pass at once, after the transport event', async () => {
+    const { gen } = chain();
+    let sawTransport = false;
+    gen.onRender = () => {
+      sawTransport = gen.got.some((e) => e.type === 'transport' && e.state.playing);
+    };
+    await deps.value.scheduler.play();
+    expect(renders.map((r) => r.id)).toEqual(['n1', 'a1', 'a2']);
+    expect(sawTransport).toBe(true);
+  });
+
+  it('until never goes backwards', () => {
+    chain();
+    ctx.currentTime = 5;
+    renderTick?.();
+    ctx.currentTime = 4; // a clock that steps back must not rewind the render edge
+    renderTick?.();
+    expect(renders.filter((r) => r.id === 'n1').map((r) => r.until)).toEqual([5.1, 5.1]);
+  });
+
+  it('a plugin whose render throws is reported once; the rest still render', () => {
+    const { a } = chain();
+    a.onRender = () => {
+      throw new Error('boom');
+    };
+    renderTick?.();
+    renderTick?.();
+    expect(renders.filter((r) => r.id === 'a2')).toHaveLength(2);
+    expect(notices).toEqual(['a1: render failed: boom']);
+  });
+
+  it('plugins without render() and nodes not ready are skipped; detach stops the loop', () => {
+    ready('n2'); // a synth: no render()
+    ready('n1');
+    renderTick?.();
+    expect(renders.map((r) => r.id)).toEqual(['n1']);
+    detach();
+    expect(renderTick).toBeUndefined();
+    detach = () => {};
+  });
+
+  it('renderOrder: sources first, loops kept in their given order', () => {
+    const t = (pairs: [string, string][]) => {
+      const m = new Map<string, { node: string }[]>();
+      for (const [f, to] of pairs) m.set(`${f}:out`, [...(m.get(`${f}:out`) ?? []), { node: to }]);
+      return m;
+    };
+    expect(
+      renderOrder(
+        ['c', 'b', 'a'],
+        t([
+          ['a', 'b'],
+          ['b', 'c'],
+        ]),
+      ),
+    ).toEqual(['a', 'b', 'c']);
+    expect(
+      renderOrder(
+        ['x', 'y', 'z'],
+        t([
+          ['x', 'y'],
+          ['y', 'x'],
+        ]),
+      ),
+    ).toEqual(['z', 'x', 'y']);
   });
 });
