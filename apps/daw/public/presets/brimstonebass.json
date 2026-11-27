@@ -31,13 +31,13 @@
       "plugin": "com.beatality.beatality",
       "x": 420,
       "y": 20,
-      "gain": 1,
+      "gain": 0.74,
       "pan": 0,
       "bypass": false,
       "params": {},
       "state": {
         "pluginId": "com.beatality.beatality",
-        "pluginVersion": "0.0.2",
+        "pluginVersion": "0.0.3",
         "data": {
           "format": "beatality.pack",
           "version": 1,
@@ -45,49 +45,49 @@
           "bpm": 120,
           "loop": 16,
           "slices": -1,
-          "attack": 2,
-          "volume": 0.59,
-          "panMin": -0.18138730108737944,
-          "panMax": 0.47077295601367947,
+          "attack": 8,
+          "volume": 1,
+          "panMin": -0.41,
+          "panMax": 0.42,
           "bpmSync": true,
           "retrig": true,
           "effects": {
             "enabled": true,
-            "globalPower": 0.86,
-            "globalChance": 0.31,
-            "beatMin": -3,
+            "globalPower": 0.49,
+            "globalChance": 0.42,
+            "beatMin": -2,
             "beatMax": 0,
-            "delayPower": 0.42,
-            "delayChance": 0.37,
-            "reverbPower": 0.45,
-            "reverbChance": 0.41,
-            "reversePower": 0.54,
-            "reverseChance": 0.54,
-            "filterPower": 0.51,
-            "filterChance": 0.42,
-            "flangerPower": 0.44,
-            "flangerChance": 0.35,
-            "trancePower": 0.34,
-            "tranceChance": 0.5,
-            "shiftPower": 0,
+            "delayPower": 1,
+            "delayChance": 0,
+            "reverbPower": 1,
+            "reverbChance": 0,
+            "reversePower": 1,
+            "reverseChance": 0,
+            "filterPower": 1,
+            "filterChance": 0.56,
+            "flangerPower": 1,
+            "flangerChance": 0.51,
+            "trancePower": 1,
+            "tranceChance": 0.54,
+            "shiftPower": 1,
             "shiftChance": 0
           },
           "repeat": {
-            "enabled": true,
-            "sizeMin": -2,
+            "enabled": false,
+            "sizeMin": -3,
             "sizeMax": -1,
             "length": 0,
-            "chance": 0.695099187374115,
-            "mix": 0.3229437917470932,
-            "positions": [true, false, true, true, true, false, false, false]
+            "chance": 0.32,
+            "mix": 0.63,
+            "positions": [true, false, true, false, true, false, true, false]
           },
           "chaos": {
-            "trigger": "loop",
-            "value": 0.69,
-            "beatSize": 0,
-            "loopSize": 1,
+            "trigger": "none",
+            "value": 0,
+            "beatSize": -1,
+            "loopSize": 4,
             "sliceSize": 0,
-            "groups": [true, false, true, false, false, false, false, true, true, false, false]
+            "groups": [false, false, false, false, false, true, false, true, false, false, false]
           },
           "sequence": {
             "savedCount": 0,
@@ -97,72 +97,58 @@
             {
               "source": {
                 "type": "internal",
-                "id": "xolotl2.wav"
+                "id": "wtwtyas4.wav"
               },
               "start": 0,
               "length": 1,
               "loop": false,
               "volume": 1,
               "pan": 0,
-              "warp": "pitch",
+              "warp": "beat",
               "bpm": 115,
-              "warpParam": 0
+              "warpParam": 0.5
             },
             {
               "source": {
                 "type": "internal",
-                "id": "xolotl1.wav"
+                "id": "wtwtyas3.wav"
               },
               "start": 0,
               "length": 1,
               "loop": false,
               "volume": 1,
               "pan": 0,
-              "warp": "pitch",
+              "warp": "beat",
               "bpm": 115,
-              "warpParam": 0
+              "warpParam": 0.5
             },
             {
               "source": {
                 "type": "internal",
-                "id": "orgolorg drums 2.wav"
+                "id": "wtwtyas2.wav"
               },
               "start": 0,
               "length": 1,
               "loop": false,
               "volume": 1,
               "pan": 0,
-              "warp": "pitch",
+              "warp": "beat",
               "bpm": 115,
-              "warpParam": 0
+              "warpParam": 0.5
             },
             {
               "source": {
                 "type": "internal",
-                "id": "orgolorg drums 1.wav"
+                "id": "wtwtyas1.wav"
               },
               "start": 0,
               "length": 1,
               "loop": false,
               "volume": 1,
               "pan": 0,
-              "warp": "pitch",
+              "warp": "beat",
               "bpm": 115,
-              "warpParam": 0
-            },
-            {
-              "source": {
-                "type": "internal",
-                "id": "orgolorg drums 2.wav"
-              },
-              "start": 0.4999995659725989,
-              "length": 1,
-              "loop": true,
-              "volume": 1,
-              "pan": 0,
-              "warp": "pitch",
-              "bpm": 115,
-              "warpParam": 0
+              "warpParam": 0.5
             }
           ]
         }
@@ -192,25 +178,26 @@
         "pluginVersion": "0.0.1",
         "data": {
           "v": 1,
+          "name": "ELECTRIC SLAP",
           "params": {
-            "filterDw1": 0.6875,
-            "filterPos1": 0.6937499999999999,
-            "reverbDw1": 0,
-            "reverbFeedback1": 0.275,
+            "filterDw1": 0,
+            "filterPos1": 0.5,
+            "reverbDw1": 0.5874999999999999,
+            "reverbFeedback1": 0.40937500000000004,
             "delayDw1": 0,
             "delayTime1": 0.6923077,
-            "filterDw2": 1,
-            "filterPos2": 0.5125,
+            "filterDw2": 0,
+            "filterPos2": 0.5,
             "reverbDw2": 0.3,
             "reverbFeedback2": 0.2,
             "delayDw2": 0.2,
             "delayTime2": 0.6923077,
-            "oscMix": 0.5125,
-            "lfo1Amp": 0.4,
-            "lfo1Time": 0.34868420000000006,
+            "oscMix": 0.26874999999999993,
+            "lfo1Amp": 0,
+            "lfo1Time": 0.4736842,
             "lfo2Amp": 0,
             "lfo2Time": 0.4736842,
-            "lfo1Type": 3,
+            "lfo1Type": 2,
             "lfo1Map": 1,
             "lfo1Sync": 1,
             "lfo1Retrig": 0,
@@ -223,35 +210,35 @@
             "osc1On": 1,
             "osc1Sample": 2,
             "osc1Vol": 1,
-            "osc1Pan": -0.4375,
+            "osc1Pan": 0,
             "osc2On": 1,
             "osc2Sample": 4,
-            "osc2Vol": 1.2,
+            "osc2Vol": 1,
             "osc2Pan": 0,
             "osc1Attack": 0,
-            "osc1Release": 0,
+            "osc1Release": 0.0237797,
             "osc2Attack": 0,
-            "osc2Release": 0,
-            "unisonValue": 0.5542102105012076,
-            "unisonVoices": 2,
+            "osc2Release": 0.0237797,
+            "unisonValue": 0.29285714285714287,
+            "unisonVoices": 4,
             "mixType": 1,
-            "lfo3Amp": 0,
+            "lfo3Amp": 0.4875,
             "lfo3Time": 0.4736842,
-            "lfo3Type": 2,
+            "lfo3Type": 4,
             "lfo3Map": 12,
             "lfo3Sync": 1,
-            "lfo3Retrig": 0,
+            "lfo3Retrig": 1,
             "lfo3Offset": 0,
-            "osc1Oct": 0,
+            "osc1Oct": -1,
             "osc2Oct": -1,
             "osc1Detune": 0,
             "osc2Detune": 0,
-            "osc1Sustain": 0,
-            "osc1Decay": 0.20778681009294492,
+            "osc1Sustain": 0.06976744186046512,
+            "osc1Decay": 0.08139534883720931,
             "osc2Sustain": 1,
-            "osc2Decay": 1
+            "osc2Decay": 0.1
           },
-          "fxOrder": [[1, 0, 2], [2, 0, 1]]
+          "fxOrder": [[2, 0, 1], [2, 0, 1]]
         }
       }
     },
@@ -275,13 +262,12 @@
             "loop": 16,
             "chordMin": 1,
             "chordMax": 3,
-            "octaveMin": 0,
-            "octaveMax": 0,
+            "octaveMin": 1,
+            "octaveMax": 1,
             "drift": 0,
             "density": 0.8,
             "notesCount": 3
-          },
-          "seeds": [2068149461, 2634865035, 603250808, 1506800945, 562934375]
+          }
         }
       }
     },
@@ -381,5 +367,28 @@
         "port": "in"
       }
     }
-  ]
+  ],
+  "notes": [
+    {
+      "id": "s6",
+      "x": 482,
+      "y": -703,
+      "w": 170,
+      "h": 88,
+      "text": "Press Play and enjoy!"
+    },
+    {
+      "id": "s7",
+      "x": 1108,
+      "y": -507,
+      "w": 300,
+      "h": 180,
+      "text": "Press < to open Presets menu\nTry changing preset"
+    }
+  ],
+  "view": {
+    "x": -240.75272792783198,
+    "y": -795.4821882951662,
+    "z": 1
+  }
 }

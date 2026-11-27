@@ -48,5 +48,20 @@
     "name": "MusicHands1",
     "mobile": false,
     "file": "musichands1.json"
+  },
+  {
+    "name": "Axolotl",
+    "mobile": false,
+    "file": "axolotl.json"
+  },
+  {
+    "name": "Axolotl",
+    "mobile": true,
+    "file": "axolotl.mobile.json"
+  },
+  {
+    "name": "BrimstoneBass",
+    "mobile": true,
+    "file": "brimstonebass.mobile.json"
   }
 ]
