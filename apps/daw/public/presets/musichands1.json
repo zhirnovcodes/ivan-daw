@@ -1,0 +1,516 @@
+{
+  "format": "ivandaw.project",
+  "version": 1,
+  "transport": {
+    "bpm": 120,
+    "numerator": 4,
+    "denominator": 4
+  },
+  "nodes": [
+    {
+      "id": "master",
+      "plugin": "builtin.master",
+      "x": 2262,
+      "y": 191,
+      "gain": 1.5,
+      "pan": 0,
+      "bypass": false,
+      "params": {}
+    },
+    {
+      "id": "n14",
+      "plugin": "com.ivandaw.musichands",
+      "x": 208,
+      "y": 251,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.musichands",
+        "pluginVersion": "0.1.0",
+        "data": {
+          "v": 1,
+          "params": {
+            "autoRect": 1,
+            "smoothing": 0.55,
+            "velocity": 127,
+            "noteLFist": 48,
+            "noteLPalm": 50,
+            "noteRFist": 60,
+            "noteRPalm": 62
+          },
+          "enabled": [
+            "L:closed_fist",
+            "L:open_palm",
+            "L:palm_x",
+            "L:palm_y",
+            "L:palm_z",
+            "R:closed_fist",
+            "R:open_palm",
+            "R:palm_x",
+            "R:palm_y",
+            "R:palm_z"
+          ],
+          "rects": {
+            "L": {
+              "cx": 0.25,
+              "cy": 0.5,
+              "w": 0.4,
+              "h": 0.7
+            },
+            "R": {
+              "cx": 0.75,
+              "cy": 0.5,
+              "w": 0.4,
+              "h": 0.7
+            }
+          },
+          "deviceId": "2166f74ff5a1551804428106e61ae776f0294d85de0aaa6cb20471ade69b24e5"
+        }
+      }
+    },
+    {
+      "id": "n15",
+      "plugin": "com.ivandaw.banana-chords",
+      "x": 628,
+      "y": -36,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.banana-chords",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "v": 1,
+          "params": {
+            "root": 0,
+            "scale": 4,
+            "loop": 8,
+            "chordMin": 2,
+            "chordMax": 4,
+            "octaveMin": 0,
+            "octaveMax": 1,
+            "drift": 0,
+            "density": 0.8,
+            "notesCount": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "n16",
+      "plugin": "com.ivandaw.choko-arpegio",
+      "x": 1073,
+      "y": -48,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.choko-arpegio",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "v": 1,
+          "params": {
+            "loop": 2,
+            "noteLengthMin": -1,
+            "noteLengthMax": 0,
+            "legato": 1,
+            "sustainMin": -3,
+            "sustainMax": -2,
+            "swing": 0.3170731707317073,
+            "retrig": 0,
+            "chaosValue": 0.5,
+            "chaosTrigger": 0,
+            "chaosLoop": 1,
+            "chaosBeat": 2,
+            "chaosShuffle": 1,
+            "chaosLength": 1,
+            "chaosSwing": 0,
+            "chaosSustain": 0,
+            "chaosChaos": 0,
+            "rng": 0.6181818181818182,
+            "chaosRng": 0
+          },
+          "seeds": [2135331695, 1275573299, 3971545564, 2874427676]
+        }
+      }
+    },
+    {
+      "id": "n18",
+      "plugin": "com.ivandaw.brimstone-bass",
+      "x": 1443,
+      "y": -63,
+      "gain": 1.5,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.brimstone-bass",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "v": 1,
+          "params": {
+            "filterDw1": 0.7529411764705882,
+            "filterPos1": 0.5,
+            "reverbDw1": 0.2235294117647059,
+            "reverbFeedback1": 0.2235294117647059,
+            "delayDw1": 0.09375000000000006,
+            "delayTime1": 0.46105769999999996,
+            "filterDw2": 1,
+            "filterPos2": 0.2625,
+            "reverbDw2": 0.3,
+            "reverbFeedback2": 0.2,
+            "delayDw2": 0.2,
+            "delayTime2": 0.6923077,
+            "oscMix": 0.6,
+            "lfo1Amp": 0.2823529411764706,
+            "lfo1Time": 0.8861842,
+            "lfo2Amp": 0,
+            "lfo2Time": 0.4736842,
+            "lfo1Type": 2,
+            "lfo1Map": 1,
+            "lfo1Sync": 1,
+            "lfo1Retrig": 0,
+            "lfo1Offset": 0,
+            "lfo2Type": 2,
+            "lfo2Map": 7,
+            "lfo2Sync": 1,
+            "lfo2Retrig": 0,
+            "lfo2Offset": 0,
+            "osc1On": 1,
+            "osc1Sample": 2,
+            "osc1Vol": 1,
+            "osc1Pan": 0,
+            "osc2On": 1,
+            "osc2Sample": 4,
+            "osc2Vol": 1,
+            "osc2Pan": 0,
+            "osc1Attack": 0.313953488372093,
+            "osc1Release": 0.10729411764705882,
+            "osc2Attack": 0,
+            "osc2Release": 0.2441860465116279,
+            "unisonValue": 0.2642857142857143,
+            "unisonVoices": 3,
+            "mixType": 1,
+            "lfo3Amp": 0,
+            "lfo3Time": 0.4736842,
+            "lfo3Type": 2,
+            "lfo3Map": 12,
+            "lfo3Sync": 1,
+            "lfo3Retrig": 0,
+            "lfo3Offset": 0,
+            "osc1Oct": 0,
+            "osc2Oct": -1,
+            "osc1Detune": 0,
+            "osc2Detune": 0,
+            "osc1Sustain": 0.6162790697674418,
+            "osc1Decay": 0.1,
+            "osc2Sustain": 1,
+            "osc2Decay": 0.1
+          },
+          "fxOrder": [[1, 2, 0], [2, 0, 1]]
+        }
+      }
+    },
+    {
+      "id": "n19",
+      "plugin": "com.ivandaw.axolotl-pad",
+      "x": 1108,
+      "y": 474,
+      "gain": 1.05,
+      "pan": 0,
+      "bypass": false,
+      "params": {},
+      "state": {
+        "pluginId": "com.ivandaw.axolotl-pad",
+        "pluginVersion": "0.0.1",
+        "data": {
+          "v": 1,
+          "params": {
+            "filterDw1": 0.24705882352941175,
+            "filterPos1": 0.776470588235294,
+            "reverbDw1": 0.3,
+            "reverbFeedback1": 0.2,
+            "delayDw1": 0.6125,
+            "delayTime1": 0.6923077,
+            "filterDw2": 0.45352941176470585,
+            "filterPos2": 0.43200000000000005,
+            "reverbDw2": 0.3,
+            "reverbFeedback2": 0.2,
+            "delayDw2": 0.53125,
+            "delayTime2": 0.6923077,
+            "oscMix": 0.5,
+            "lfo1Amp": 0.5125,
+            "lfo1Time": 1,
+            "lfo2Amp": 0.775,
+            "lfo2Time": 0.9174342,
+            "lfo1Type": 2,
+            "lfo1Map": 1,
+            "lfo1Sync": 1,
+            "lfo1Retrig": 0,
+            "lfo1Offset": 0,
+            "lfo2Type": 2,
+            "lfo2Map": 7,
+            "lfo2Sync": 1,
+            "lfo2Retrig": 0,
+            "lfo2Offset": 0,
+            "osc1On": 1,
+            "osc1Sample": 7,
+            "osc1Vol": 1,
+            "osc1Pan": 0,
+            "osc2On": 1,
+            "osc2Sample": 8,
+            "osc2Vol": 1,
+            "osc2Pan": 0,
+            "osc1Attack": 0.3,
+            "osc1Release": 0.3,
+            "osc2Attack": 0.3,
+            "osc2Release": 0.3,
+            "unisonValue": 0.15,
+            "unisonVoices": 0,
+            "mixType": 1,
+            "lfo3Amp": 0,
+            "lfo3Time": 0.4736842,
+            "lfo3Type": 2,
+            "lfo3Map": 12,
+            "lfo3Sync": 1,
+            "lfo3Retrig": 0,
+            "lfo3Offset": 0,
+            "osc1Oct": -1,
+            "osc2Oct": 1,
+            "osc1Detune": 24,
+            "osc2Detune": 24
+          },
+          "fxOrder": [[2, 0, 1], [2, 0, 1]]
+        }
+      }
+    }
+  ],
+  "cables": [
+    {
+      "id": "c13",
+      "from": {
+        "node": "n15",
+        "port": "out"
+      },
+      "to": {
+        "node": "n16",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c14",
+      "from": {
+        "node": "n16",
+        "port": "out"
+      },
+      "to": {
+        "node": "n18",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c17",
+      "from": {
+        "node": "n18",
+        "port": "out"
+      },
+      "to": {
+        "node": "master",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c18",
+      "from": {
+        "node": "n19",
+        "port": "out"
+      },
+      "to": {
+        "node": "master",
+        "port": "in"
+      }
+    },
+    {
+      "id": "c19",
+      "from": {
+        "node": "n14",
+        "port": "notes"
+      },
+      "to": {
+        "node": "n19",
+        "port": "in"
+      }
+    }
+  ],
+  "notes": [
+    {
+      "id": "s4",
+      "x": 298,
+      "y": 58,
+      "w": 300,
+      "h": 180,
+      "text": "Allow camera access, press Play and move your hands for magic"
+    }
+  ],
+  "arms": [
+    {
+      "id": "a1",
+      "from": {
+        "node": "n14",
+        "index": 1
+      },
+      "to": {
+        "node": "n18",
+        "index": 1
+      },
+      "source": "l-x",
+      "target": "ctl:param:filterDw1",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "id": "a2",
+      "from": {
+        "node": "n14",
+        "index": 2
+      },
+      "to": {
+        "node": "n18",
+        "index": 2
+      },
+      "source": "l-y",
+      "target": "ctl:param:reverbFeedback1",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "id": "a3",
+      "from": {
+        "node": "n14",
+        "index": 3
+      },
+      "to": {
+        "node": "n18",
+        "index": 3
+      },
+      "source": "l-y",
+      "target": "ctl:param:reverbDw1",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "id": "a4",
+      "from": {
+        "node": "n14",
+        "index": 4
+      },
+      "to": {
+        "node": "n18",
+        "index": 4
+      },
+      "source": "r-x",
+      "target": "ctl:param:oscMix",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "id": "a5",
+      "from": {
+        "node": "n14",
+        "index": 5
+      },
+      "to": {
+        "node": "n18",
+        "index": 5
+      },
+      "source": "r-y",
+      "target": "ctl:param:lfo1Amp",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "id": "a6",
+      "from": {
+        "node": "n14",
+        "index": 6
+      },
+      "to": {
+        "node": "n18",
+        "index": 6
+      },
+      "source": "r-y",
+      "target": "ctl:param:osc1Release",
+      "min": 0,
+      "max": 38
+    },
+    {
+      "id": "a7",
+      "from": {
+        "node": "n14",
+        "index": 7
+      },
+      "to": {
+        "node": "n19",
+        "index": 1
+      },
+      "source": "l-x",
+      "target": "ctl:param:filterDw1",
+      "min": 100,
+      "max": 0
+    },
+    {
+      "id": "a8",
+      "from": {
+        "node": "n14",
+        "index": 8
+      },
+      "to": {
+        "node": "n19",
+        "index": 2
+      },
+      "source": "l-y",
+      "target": "ctl:param:filterPos1",
+      "min": 100,
+      "max": 0
+    },
+    {
+      "id": "a9",
+      "from": {
+        "node": "n14",
+        "index": 9
+      },
+      "to": {
+        "node": "n19",
+        "index": 3
+      },
+      "source": "r-x",
+      "target": "ctl:param:filterPos2",
+      "min": 87,
+      "max": 14
+    },
+    {
+      "id": "a10",
+      "from": {
+        "node": "n14",
+        "index": 10
+      },
+      "to": {
+        "node": "n19",
+        "index": 4
+      },
+      "source": "r-y",
+      "target": "ctl:param:filterDw2",
+      "min": 27,
+      "max": 92
+    }
+  ],
+  "view": {
+    "x": -76,
+    "y": -63,
+    "z": 1
+  }
+}

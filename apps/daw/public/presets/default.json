@@ -1,0 +1,27 @@
+{
+  "format": "ivandaw.project",
+  "version": 1,
+  "transport": {
+    "bpm": 120,
+    "numerator": 4,
+    "denominator": 4
+  },
+  "nodes": [
+    {
+      "id": "master",
+      "plugin": "builtin.master",
+      "x": 1473,
+      "y": 304,
+      "gain": 1,
+      "pan": 0,
+      "bypass": false,
+      "params": {}
+    }
+  ],
+  "cables": [],
+  "view": {
+    "x": 0,
+    "y": 0,
+    "z": 1
+  }
+}

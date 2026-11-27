@@ -20,17 +20,23 @@ describe('openPath', () => {
     { name: 'Pad', mobile: true, file: 'pad.mobile.json' },
   ];
   it('opens a saved preset by name, any case, over ?project', async () => {
-    expect(await openPath('?preset=My%20Beat', list)).toEqual({ path: 'presets/my-beat.json' });
+    expect(await openPath('?preset=My%20Beat', list)).toEqual({
+      path: 'presets/my-beat.json',
+    });
     expect(await openPath('?preset=my+beat&project=sine', list)).toEqual({
       path: 'presets/my-beat.json',
     });
-    expect(await openPath('?preset=my-beat', list)).toEqual({ path: 'presets/my-beat.json' });
+    expect(await openPath('?preset=my-beat', list)).toEqual({
+      path: 'presets/my-beat.json',
+    });
   });
   it('opens the kind for the page mode, else the other kind of that name', async () => {
     expect(await openPath('?preset=Drums', list, true)).toEqual({
       path: 'presets/drums.mobile.json',
     });
-    expect(await openPath('?preset=Drums', list, false)).toEqual({ path: 'presets/drums.json' });
+    expect(await openPath('?preset=Drums', list, false)).toEqual({
+      path: 'presets/drums.json',
+    });
     expect(await openPath('?preset=My%20Beat', list, true)).toEqual({
       path: 'presets/my-beat.json',
       otherKind: true,
@@ -46,11 +52,32 @@ describe('openPath', () => {
       missing: 'Nope',
     });
   });
-  it('does not read the list without ?preset', async () => {
+  it('opens ?project without reading the list', async () => {
     const never = async () => {
       throw new Error('not called');
     };
-    expect(await openPath('?project=sine', never)).toEqual({ path: 'projects/sine.json' });
-    expect(await openPath('?preset=', never)).toEqual({ path: 'projects/demo.json' });
+    expect(await openPath('?project=sine', never)).toEqual({
+      path: 'projects/sine.json',
+    });
+    expect(await openPath('?preset=&project=sine', never)).toEqual({
+      path: 'projects/sine.json',
+    });
+  });
+  it('opens the Default preset with neither ?preset nor ?project, else the demo', async () => {
+    const withDefault = async () => [
+      ...(await list()),
+      { name: 'DEFAULT', mobile: false, file: 'default.json' },
+      { name: 'Default', mobile: true, file: 'default.mobile.json' },
+    ];
+    expect(await openPath('', withDefault)).toEqual({
+      path: 'presets/default.json',
+    });
+    expect(await openPath('?mode=play_only', withDefault, true)).toEqual({
+      path: 'presets/default.mobile.json',
+    });
+    expect(await openPath('?preset=', withDefault)).toEqual({
+      path: 'presets/default.json',
+    });
+    expect(await openPath('', list)).toEqual({ path: 'projects/demo.json' });
   });
 });

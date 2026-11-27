@@ -1,8 +1,16 @@
 import { expect, type Page } from '@playwright/test';
 
-/** Opens the app and waits until the demo project is loaded and every node in it is ready. */
+/**
+ * Opens the app and waits until the project is loaded and every node in it is ready. A path naming
+ * neither ?project nor ?preset gets ?project=demo: a bare URL opens the Default preset, which the
+ * tests don't rely on.
+ */
 export async function openDemo(page: Page, path = '/'): Promise<void> {
-  await page.goto(path);
+  const url = new URL(path, 'http://x');
+  if (!url.searchParams.has('project') && !url.searchParams.has('preset')) {
+    url.searchParams.set('project', 'demo');
+  }
+  await page.goto(url.pathname + url.search);
   await expect
     .poll(
       () =>

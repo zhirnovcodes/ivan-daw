@@ -28,5 +28,25 @@
     "name": "AllInstruments",
     "mobile": true,
     "file": "allinstruments.mobile.json"
+  },
+  {
+    "name": "Default",
+    "mobile": false,
+    "file": "default.json"
+  },
+  {
+    "name": "Default",
+    "mobile": true,
+    "file": "default.mobile.json"
+  },
+  {
+    "name": "HipHop",
+    "mobile": false,
+    "file": "hiphop.json"
+  },
+  {
+    "name": "MusicHands1",
+    "mobile": false,
+    "file": "musichands1.json"
   }
 ]
