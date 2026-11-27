@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readMobile, readMode } from './mode';
+import { readLatency, readMobile, readMode } from './mode';
 
 describe('readMode', () => {
   it('reads ?mode=normal | play_only | dev', () => {
@@ -38,5 +38,23 @@ describe('readMobile', () => {
     expect(readMobile('?mode=play_only', no)).toBe(false);
     expect(readMobile('?mobile=maybe', yes)).toBe(true);
     expect(readMobile('?mode=mobile', no)).toBe(false);
+  });
+});
+
+describe('readLatency', () => {
+  it('defaults to playback on mobile, interactive on desktop', () => {
+    expect(readLatency('', true)).toBe('playback');
+    expect(readLatency('?mode=dev', false)).toBe('interactive');
+  });
+  it('reads ?latency=<category> | <seconds>', () => {
+    expect(readLatency('?latency=Interactive', true)).toBe('interactive');
+    expect(readLatency('?latency=balanced', false)).toBe('balanced');
+    expect(readLatency('?latency=playback', false)).toBe('playback');
+    expect(readLatency('?latency=0.08', true)).toBe(0.08);
+  });
+  it('ignores unknown or out-of-range values', () => {
+    expect(readLatency('?latency=fast', true)).toBe('playback');
+    expect(readLatency('?latency=0', false)).toBe('interactive');
+    expect(readLatency('?latency=5', true)).toBe('playback');
   });
 });

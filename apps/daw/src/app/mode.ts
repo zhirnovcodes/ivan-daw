@@ -35,3 +35,14 @@ export function readMobile(search: string, detect: () => boolean): boolean {
 /** A phone or tablet: the main pointer is a finger and nothing can hover. */
 export const detectMobile = (): boolean =>
   typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+
+/** The AudioContext latencyHint. ?latency=interactive | balanced | playback | <seconds> (0.005–1);
+ *  missing or unknown: 'playback' on mobile, whose bigger buffers ride out a busy CPU while
+ *  scrolling, else 'interactive'. */
+export function readLatency(search: string, mobile: boolean): AudioContextLatencyCategory | number {
+  const asked = new URLSearchParams(search).get('latency')?.trim().toLowerCase() ?? '';
+  if (asked === 'interactive' || asked === 'balanced' || asked === 'playback') return asked;
+  const s = asked === '' ? Number.NaN : Number(asked);
+  if (Number.isFinite(s) && s >= 0.005 && s <= 1) return s;
+  return mobile ? 'playback' : 'interactive';
+}

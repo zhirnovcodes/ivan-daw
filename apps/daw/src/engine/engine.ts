@@ -31,8 +31,11 @@ export interface EngineOptions {
   catalog: Catalog | Promise<Catalog>;
   /** Loads a plugin module. Default: `import(url)`. Tests and dev pages pass their own. */
   importModule?: (url: string) => Promise<unknown>;
-  /** Makes the AudioContext. Default: `new AudioContext({ latencyHint: 'interactive' })`. */
+  /** Makes the AudioContext. Default: `new AudioContext({ latencyHint })`. */
   createContext?: () => AudioContext;
+  /** Buffer size trade-off for the default context: small buffers answer keys faster, big ones
+   *  survive a busy CPU (a phone while scrolling). Default: 'interactive'. */
+  latencyHint?: AudioContextLatencyCategory | number;
   /** Called for every `host.notify()` and every load error, after the console line. The canvas shows it as a toast. */
   onNotify?: (node: string, level: NotifyLevel, message: string) => void;
   /** Base URL that saved state file paths are relative to. Default: `import.meta.env.BASE_URL`. */
@@ -88,7 +91,8 @@ function mainAudioOutHandle(instance: PluginInstance): AudioHandle | undefined {
 }
 
 export function createEngine(opts: EngineOptions): LiveEngine {
-  const context = opts.createContext?.() ?? new AudioContext({ latencyHint: 'interactive' });
+  const context =
+    opts.createContext?.() ?? new AudioContext({ latencyHint: opts.latencyHint ?? 'interactive' });
   const master = createMaster(context);
   const importModule = opts.importModule ?? defaultImport;
   const catalog = Promise.resolve(opts.catalog);

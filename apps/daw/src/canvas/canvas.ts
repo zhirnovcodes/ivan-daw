@@ -232,7 +232,7 @@ export const mountCanvas: MountUi = (root) => {
   const zoomIn = zoomBtn('ivd-zoom-step', '+', 'Zoom in');
   zoomPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
   zoomPanel.addEventListener('wheel', (e) => e.stopPropagation());
-  // LOADING label, just above the zoom panel, while any plugin is still loading.
+  // LOADING label, top-left under the Play button, while any plugin is still loading.
   const loadingLabel = h('div', 'ivd-loading', 'LOADING');
   loadingLabel.setAttribute('role', 'status');
   canvas.append(world, zoomPanel, loadingLabel);

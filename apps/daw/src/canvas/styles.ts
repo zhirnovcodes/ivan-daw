@@ -91,8 +91,8 @@ export const CANVAS_CSS = `
 .ivd-zoombar button:active { box-shadow: var(--w95-pressed); }
 .ivd-zoombar button:focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
 .ivd-zoom-step { width: 23px; }
-/* LOADING label: above the zoom panel (29 px tall + 4 px gap). */
-.ivd-loading { position: absolute; left: var(--ivd-left, 16px); bottom: calc(var(--ivd-bottom, 16px) + 33px); z-index: 10;
+/* LOADING label: top-left, just under the top panel's Play button (the canvas starts at its bottom edge). */
+.ivd-loading { position: absolute; left: var(--ivd-left, 16px); top: 6px; z-index: 10;
   padding: 3px 8px; font: 700 13px var(--w95-font); color: #000; background: var(--w95-face); box-shadow: var(--w95-raised);
   pointer-events: none; }
 .ivd-loading[hidden] { display: none; }

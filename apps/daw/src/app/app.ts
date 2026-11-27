@@ -17,9 +17,10 @@ import { mountAddMenu, mountPresetPanel, mountTransportBar, setPanelServices } f
 import { ensureW95 } from '../panels/w95';
 import { createRouter, type LiveRouter } from '../router/router';
 import { createScheduler, type LiveScheduler } from '../scheduler/scheduler';
-import { loadProject, play, stop } from '../store/actions';
+import { loadProject, pause, play, stop } from '../store/actions';
 import { camera, isMobile, mode, nodeStatus, project, provide, uiSlots } from '../store/store';
-import { detectMobile, readMobile, readMode } from './mode';
+import { sleepWhenHidden } from './lifecycle';
+import { detectMobile, readLatency, readMobile, readMode } from './mode';
 import { type Mounted, syncPluginUis } from './pluginUi';
 import { openPath } from './projectUrl';
 
@@ -146,6 +147,7 @@ export async function boot(): Promise<App> {
   const notify = (node: string, message: string): void => showToast(`${node}: ${message}`);
   const engine = createEngine({
     catalog,
+    latencyHint: readLatency(location.search, isMobile.value),
     onNotify: (node, _level, message) => notify(node, message),
   });
   const click = new URLSearchParams(location.search).get('click') === '1';
@@ -157,6 +159,18 @@ export async function boot(): Promise<App> {
   router.attach();
   engine.attach();
   engine.installUnlock();
+  // A phone keeps a hidden page's audio running but starves it, so it crackles: lock = pause.
+  if (isMobile.value) {
+    sleepWhenHidden({
+      doc: document,
+      pause,
+      suspend: () => engine.context.suspend(),
+      wake: () => {
+        void engine.unlock().catch(() => {});
+        engine.installUnlock();
+      },
+    });
+  }
 
   setPanelServices({
     instance: (id) => engine.get(id)?.instance,
