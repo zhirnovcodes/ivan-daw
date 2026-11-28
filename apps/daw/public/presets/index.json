@@ -63,5 +63,15 @@
     "name": "BrimstoneBass",
     "mobile": true,
     "file": "brimstonebass.mobile.json"
+  },
+  {
+    "name": "ChakaponiTechno150",
+    "mobile": false,
+    "file": "chakaponitechno150.json"
+  },
+  {
+    "name": "ChakaponiTechno135",
+    "mobile": false,
+    "file": "chakaponitechno135.json"
   }
 ]
