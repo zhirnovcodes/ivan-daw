@@ -28,7 +28,7 @@
       "params": {},
       "state": {
         "pluginId": "com.beatality.beatality",
-        "pluginVersion": "0.0.4",
+        "pluginVersion": "0.0.5",
         "data": {
           "format": "beatality.pack",
           "version": 1,
@@ -48,28 +48,28 @@
             "globalChance": 0.61,
             "beatMin": -2,
             "beatMax": 1,
-            "delayPower": 0.7638198954939842,
-            "delayChance": 0.20359435337781906,
-            "reverbPower": 0.42896124384403234,
-            "reverbChance": 0.20338327920436858,
-            "reversePower": 0.8342140477299691,
-            "reverseChance": 0.397850445985794,
-            "filterPower": 0.8484235525250435,
-            "filterChance": 0.11922185444831848,
-            "flangerPower": 0.7232970726847648,
-            "flangerChance": 0.20147364330291748,
-            "trancePower": 0.9089239911079408,
-            "tranceChance": 0.4492350980043411,
-            "shiftPower": 0.16271111212968825,
-            "shiftChance": 0.5246890376806259
+            "delayPower": 0.8213127473950387,
+            "delayChance": 0.08375630044937135,
+            "reverbPower": 0.27705554946660993,
+            "reverbChance": 0.44591147941350934,
+            "reversePower": 0.6710136629223824,
+            "reverseChance": 0.187907290995121,
+            "filterPower": 0.18912664666175844,
+            "filterChance": 0.3330319181084633,
+            "flangerPower": 0.771004271376133,
+            "flangerChance": 0.16503333467245102,
+            "trancePower": 0.7400308402180672,
+            "tranceChance": 0.5042006822228431,
+            "shiftPower": 0.7456753417372703,
+            "shiftChance": 0.5605168368220328
           },
           "repeat": {
             "enabled": true,
-            "sizeMin": -3,
-            "sizeMax": -2,
-            "length": -2,
-            "chance": 0.5445492945909501,
-            "mix": 0.24718136966228482,
+            "sizeMin": -1,
+            "sizeMax": -1,
+            "length": 0,
+            "chance": 0.4933305886983872,
+            "mix": 0.3861793953180313,
             "positions": [true, false, true, false, true, false, true, false]
           },
           "chaos": {
@@ -179,7 +179,7 @@
         "data": {
           "v": 1,
           "params": {
-            "root": 6,
+            "root": 8,
             "scale": 0,
             "loop": 16,
             "chordMin": 1,
@@ -220,7 +220,7 @@
             "reverbFeedback2": 0.2,
             "delayDw2": 1,
             "delayTime2": 0.13529123195190426,
-            "oscMix": 0.3412502288818359,
+            "oscMix": 0.21000022888183592,
             "lfo1Amp": 0,
             "lfo1Time": 0.4736842,
             "lfo2Amp": 0,
@@ -330,7 +330,7 @@
             "rng": 0,
             "chaosRng": 0
           },
-          "seeds": [2926343223, 3358534684, 2717848038, 3852117291]
+          "seeds": [679543994, 944913344, 1388879227, 204021429]
         }
       }
     },
@@ -345,7 +345,7 @@
       "params": {},
       "state": {
         "pluginId": "com.beatality.beatality",
-        "pluginVersion": "0.0.4",
+        "pluginVersion": "0.0.5",
         "data": {
           "format": "beatality.pack",
           "version": 1,
@@ -656,11 +656,19 @@
       "w": 300,
       "h": 180,
       "text": "Press Load and try other preset"
+    },
+    {
+      "id": "s9",
+      "x": 102,
+      "y": 1231,
+      "w": 300,
+      "h": 180,
+      "text": "Try preset \"Im a table\". Press \"LOAD\" and double ckick on it"
     }
   ],
   "view": {
-    "x": -157.75272792783198,
-    "y": -1191.2175572519081,
+    "x": -191.75272792783198,
+    "y": -1145.5,
     "z": 1
   }
 }
