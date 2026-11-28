@@ -2,6 +2,8 @@
 // Add plugin and Sticky note on the right. Design: docs/v1.2-redesign.md, "3. Fixed panels".
 // Mobile mode (2026-11-26): two rows (Play, Stop, BPM − +, beat; then Master Volume and Pan),
 // no Add plugin or Sticky note. The shell's `ivd-mobile` class sets the layout (panels/styles.ts).
+// Record (2026-11-28): circle + time left, before Play with a separator, desktop only
+// (recordButton.ts).
 
 import { computed, effect } from '@preact/signals-core';
 import type { MountUi } from '../contracts/ui';
@@ -16,6 +18,7 @@ import { ensureStyles, h } from './dom';
 import { formatBeat } from './format';
 import { ICON_ADD_PLUGIN, ICON_STICKY_NOTE } from './icons';
 import { shouldTogglePlay } from './keys';
+import { createRecordButton } from './recordButton';
 import { panelServices } from './services';
 
 export const mountTransportBar: MountUi = (root) => {
@@ -93,9 +96,13 @@ export const mountTransportBar: MountUi = (root) => {
   addBtn.dataset.ivpAdd = '';
   const noteBtn = iconBtn('Sticky note', ICON_STICKY_NOTE);
   noteBtn.dataset.ivpNote = '';
+  let rec: ReturnType<typeof createRecordButton> | undefined;
   if (mobile) bar.append(playBtn, stopBtn, bpmWrap, beat, master);
   else {
+    rec = createRecordButton();
     bar.append(
+      ...rec.els,
+      h('span', 'ivp-sep'),
       playBtn,
       stopBtn,
       bpmWrap,
@@ -210,6 +217,7 @@ export const mountTransportBar: MountUi = (root) => {
 
   return () => {
     for (const s of stops) s();
+    rec?.dispose();
     document.removeEventListener('keydown', onKey);
     bar.remove();
   };

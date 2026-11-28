@@ -22,6 +22,7 @@ import { setNodeStatus } from '../store/actions';
 import { deps, project } from '../store/store';
 import { createMaster, MASTER_GAIN } from './master';
 import { REMOVE_DISPOSE_MS } from './ramp';
+import { createMasterRecorder, type MasterRecorder } from './recorder';
 import { createStrip, type LiveStrip } from './strip';
 
 export type NotifyLevel = 'info' | 'warning' | 'error';
@@ -49,6 +50,8 @@ export interface LiveEngine extends Engine {
   attach(): () => void;
   /** Resumes the context on the first pointerdown or keydown on `target`. Returns a remover. */
   installUnlock(target?: EventTarget): () => void;
+  /** Records Master's output to MP3 (2026-11-28, the Record button). */
+  readonly recorder: MasterRecorder;
   /** Disposes every node and closes the context. */
   close(): Promise<void>;
 }
@@ -289,6 +292,7 @@ export function createEngine(opts: EngineOptions): LiveEngine {
     },
     get: (id) => live.get(id),
     rms: () => master.rms(),
+    recorder: createMasterRecorder(context, master.output),
     controlParam(id, which) {
       if (id === MASTER_ID) {
         return which === 'gain'

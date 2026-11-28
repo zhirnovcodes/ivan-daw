@@ -5,6 +5,18 @@
 import type { PluginInstance } from 'ivandaw-core';
 import type { Catalog } from '../model/catalog';
 
+/** One recording of Master (2026-11-28); see engine/recorder.ts. */
+export interface RecordingHandle {
+  stop(): Promise<Blob>;
+  cancel(): void;
+}
+
+/** Records Master's output to MP3. */
+export interface RecorderService {
+  prepare(): Promise<void>;
+  start(opts: { onLimit: () => void }): Promise<RecordingHandle>;
+}
+
 export interface PanelServices {
   /** The live instance of a node, if its plugin has loaded. */
   instance(id: string): PluginInstance | undefined;
@@ -13,6 +25,8 @@ export interface PanelServices {
   catalog(): Promise<Catalog>;
   /** Canvas centre in canvas px; where `+ Add` puts a new node. */
   canvasCenter(): { x: number; y: number };
+  /** The Record button's recorder; undefined leaves the button greyed out. */
+  recorder(): RecorderService | undefined;
 }
 
 const defaults = (): PanelServices => ({
@@ -20,6 +34,7 @@ const defaults = (): PanelServices => ({
   now: () => 0,
   catalog: async () => ({ plugins: [] }),
   canvasCenter: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }),
+  recorder: () => undefined,
 });
 
 let current: PanelServices = defaults();

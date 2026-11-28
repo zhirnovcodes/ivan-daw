@@ -176,6 +176,7 @@ export async function boot(): Promise<App> {
     instance: (id) => engine.get(id)?.instance,
     now: () => engine.context.currentTime,
     catalog: async () => catalog,
+    recorder: () => engine.recorder,
     canvasCenter: () => {
       // The middle of what is on screen now, in world coordinates.
       const r = ui.canvas.getBoundingClientRect();

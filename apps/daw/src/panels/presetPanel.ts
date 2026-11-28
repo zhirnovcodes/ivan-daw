@@ -14,6 +14,7 @@ import { fetchPresets, type PresetEntry, presetSlug, samePreset } from '../model
 import { fetchProject, MASTER_ID, type Project } from '../model/project';
 import { loadProject, stop } from '../store/actions';
 import { camera, isMobile, project } from '../store/store';
+import { askYesNo } from './dialog';
 import { ensureStyles, h } from './dom';
 import { panelServices } from './services';
 import { titleBar } from './w95';
@@ -34,50 +35,9 @@ const CSS = `
 .ivp-presets-row { display: flex; gap: 6px; justify-content: flex-end; }
 .ivp-presets-row > :first-child { margin-right: auto; }
 .ivp-presets-status { min-height: 15px; font-size: 12px; }
-.ivp-modal-back { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center;
-  background: rgb(0 0 0 / 0.15); }
-.ivp-modal { min-width: 280px; }
-.ivp-modal-body { padding: 14px 12px 10px; }
-.ivp-modal-row { display: flex; gap: 6px; justify-content: center; padding: 0 0 8px; }
-.ivp-modal-row .w95-btn { min-width: 75px; }
 `;
 
 let styled = false;
-
-/** A Win95 Yes / No box. Resolves true on Yes; Escape, No and X are false. */
-export function askYesNo(title: string, question: string): Promise<boolean> {
-  return new Promise((done) => {
-    const back = h('div', 'ivp-modal-back');
-    const win = h('div', 'ivp-modal w95-window w95');
-    win.setAttribute('role', 'alertdialog');
-    win.setAttribute('aria-label', title);
-    const finish = (yes: boolean): void => {
-      document.removeEventListener('keydown', onKey, true);
-      back.remove();
-      done(yes);
-    };
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      finish(false);
-    };
-    const { bar } = titleBar(title, [{ label: 'X', title: 'Close', onClick: () => finish(false) }]);
-    const body = h('div', 'ivp-modal-body', question);
-    const row = h('div', 'ivp-modal-row');
-    const yes = h('button', 'w95-btn', 'Yes');
-    yes.type = 'button';
-    yes.addEventListener('click', () => finish(true));
-    const no = h('button', 'w95-btn', 'No');
-    no.type = 'button';
-    no.addEventListener('click', () => finish(false));
-    row.append(yes, no);
-    win.append(bar, body, row);
-    back.append(win);
-    document.body.append(back);
-    document.addEventListener('keydown', onKey, true);
-    no.focus();
-  });
-}
 
 async function send(
   method: string,

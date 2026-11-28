@@ -18,6 +18,17 @@ export const PANELS_CSS = `
 .ivp-bar button:active:not(:disabled), .ivp-node button:active:not(:disabled) { box-shadow: var(--w95-pressed); }
 .ivp-bar button:focus-visible, .ivp-node button:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
 .ivp-play { min-width: 64px; }
+/* Record (2026-11-28): a circle and the time left. Green = off, fading red = starts on Play, red = recording. */
+.ivp-rec-group { display: inline-flex; align-items: center; gap: 5px; }
+.ivp-bar .ivp-rec { min-width: 0; width: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.ivp-rec-dot { width: 12px; height: 12px; border-radius: 50%; background: #006400; }
+.ivp-rec-cap { min-width: 4ch; font-variant-numeric: tabular-nums; color: #000; }
+.ivp-rec-cap.warn { color: #E00000; }
+.ivp-rec[data-state="armed"] .ivp-rec-dot { background: #E00000; animation: ivp-rec-fade 0.8s ease-in-out infinite alternate; }
+.ivp-rec[data-state="recording"] .ivp-rec-dot { background: #E00000; }
+.ivp-bar .ivp-rec:disabled .ivp-rec-dot { opacity: 0.45; }
+@keyframes ivp-rec-fade { from { opacity: 1; } to { opacity: 0.15; } }
+@media (prefers-reduced-motion: reduce) { .ivp-rec[data-state="armed"] .ivp-rec-dot { animation: none; opacity: 0.45; } }
 .ivp-bpm { display: flex; align-items: center; gap: 8px; }
 .ivp-bpm input { width: 56px; text-align: left; font: inherit; color: #000; background: var(--w95-field); border: 0; border-radius: 0;
   box-shadow: var(--w95-sunken); padding: 3px 5px; height: 21px; box-sizing: border-box; outline: none; -moz-appearance: textfield; }

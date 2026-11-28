@@ -1,4 +1,5 @@
 // Master: in (summing GainNode) → master gain → StereoPannerNode (master pan, v1.1) → AnalyserNode (meter) → speakers.
+// The recorder (2026-11-28) taps the AnalyserNode too: it records exactly what the speakers get.
 
 import { glideTo } from './ramp';
 
@@ -12,6 +13,8 @@ export interface Master {
   /** Master's output gain (holds 0.8 × the Master node's volume) and pan, for control cables. */
   readonly gainParam: AudioParam;
   readonly panParam: AudioParam;
+  /** The last node before the speakers, after volume and pan. The recorder listens here. */
+  readonly output: AudioNode;
   /** Sets the Master node's volume (0..1.5); the output gain is 0.8 × v. */
   setVolume(v: number): void;
   /** Sets the Master node's pan (−1..1), glided. */
@@ -37,6 +40,7 @@ export function createMaster(ctx: AudioContext): Master {
     input,
     gainParam: out.gain,
     panParam: pan.pan,
+    output: analyser,
     setVolume(v) {
       glideTo(out.gain, MASTER_GAIN * v, ctx.currentTime);
     },
