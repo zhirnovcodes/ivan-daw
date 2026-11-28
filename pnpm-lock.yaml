@@ -29,6 +29,9 @@ importers:
       ivandaw-core:
         specifier: github:zhirnovcodes/ivan-daw-core#v0.2.0
         version: https://codeload.github.com/zhirnovcodes/ivan-daw-core/tar.gz/d8d2a3b126cb6c99e3463d5e9ad963393ea93823
+      wasm-media-encoders:
+        specifier: ^0.7.0
+        version: 0.7.0
     devDependencies:
       '@playwright/test':
         specifier: 1.63.0
@@ -320,6 +323,9 @@ packages:
 
   '@rolldown/pluginutils@1.1.0':
     resolution: {integrity: sha512-K+NU2HDCEem4sClgHH4ZZXwdJeNFkJo+hRk479DIwdIviAPN2hFJH1KHHwg8CxHQXvi0M5XY4deTXINfIiSG6w==}
+
+  '@swc/helpers@0.5.24':
+    resolution: {integrity: sha512-6tcXo4kA8HgGO7AVmawB57RYi/piBPYVHVcO6dXjX+SZw8GoHmi262sp4v2Ha2kNP9Cx84qei27yT+fjS1lxgg==}
 
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
@@ -734,6 +740,10 @@ packages:
       jsdom:
         optional: true
 
+  wasm-media-encoders@0.7.0:
+    resolution: {integrity: sha512-Sp4wUasgxOK/IFfNhpon6LQQgYGwtpxyV4isjGIe1rvhnJL3w2KYr4f+CdqDNtGPDcgCDRY+uBanVfSx6Si0WQ==}
+    engines: {node: '>= 10'}
+
   why-is-node-running@3.2.1:
     resolution: {integrity: sha512-Tb2FUhB4vUsGQlfSquQLYkApkuPAFQXGFzxWKHHumVz2dK+X1RUm/HnID4+TfIGYJ1kTcwOaCk/buYCEJr6YjQ==}
     engines: {node: '>=20.11'}
@@ -877,6 +887,8 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.1.0': {}
+
+  '@swc/helpers@0.5.24': {}
 
   '@tybys/wasm-util@0.10.4':
     dependencies:
@@ -1150,5 +1162,9 @@ snapshots:
       why-is-node-running: 3.2.1
     transitivePeerDependencies:
       - msw
+
+  wasm-media-encoders@0.7.0:
+    dependencies:
+      '@swc/helpers': 0.5.24
 
   why-is-node-running@3.2.1: {}
